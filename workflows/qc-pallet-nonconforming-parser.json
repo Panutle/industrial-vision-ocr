@@ -1,0 +1,2989 @@
+{
+  "name": "tpi-ocr-docs-018",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nvar output = {};\n\nfor (const item of $input.all()) {\n  try {\n    let rawText = item.json.candidates[0].content.parts[0].text;\n    const regex = /```json\\s*([\\s\\S]*?)\\s*```/i;\n    const match = rawText.match(regex);\n    let cleanText = \"\";\n    if (match && match[1]) {\n      cleanText = match[1].trim();\n    } else {\n      cleanText = rawText.trim().replace(/^```(json)?/i, '').replace(/```$/i, '').trim();\n    }\n    let parsedData = JSON.parse(cleanText);\n    if (Array.isArray(parsedData)) {\n      for (const row of parsedData) {\n        results.push({ json: (typeof row === 'object' && row !== null) ? row : { value: row } });\n      }\n    } else if (typeof parsedData === 'object' && parsedData !== null) {\n      if (parsedData.output && Array.isArray(parsedData.output)) {\n        for (const row of parsedData.output) {\n          results.push({ json: row });\n        }\n      } else {\n        for (const key in parsedData) {\n          let row = parsedData[key];\n          if (typeof row === 'object' && row !== null && !Array.isArray(row)) {\n            if (!row.row_id) row.row_id = key;\n            results.push({ json: row });\n          } else {\n            results.push({ json: { row_id: key, value: row } });\n          }\n        }\n      }\n    } else {\n      results.push({ json: { result: parsedData } });\n    }\n  } catch (error) {\n    results.push({ json: { error: \"Failed to parse JSON\", details: error.message } });\n  }\n}\n\noutput = { \"tb\": \"tb_header\", \"result\": results };\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4240,
+        -112
+      ],
+      "id": "6b7c889a-2b37-4d73-9190-ff8c39d6b49d",
+      "name": "cvt-text-to-json-1"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-pro-preview-customtools",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-pro-preview-customtools"
+        },
+        "text": "=You are an OCR extraction agent. Extract data from the COLUMN-HEADER row of the form in the image.\n\nThe image contains a quality-control form. Focus ONLY on the row of 9 vertically-written sub-column headers under the heading \"จำนวนสินค้าที่พบปัญหาคุณภาพ / Nonconforming Product (pcs.)\", located between the top header band and the main data rows.\nDo NOT extract the product/machine/date header band above, and do NOT extract any data rows below.\n\nTable structure:\n- Rows: 1 row\n- Columns: 9 columns labeled A, B, C, D, E, F, G, H, I (left to right)\n\nMapping table (read the Thai text in the cell, find the closest match on the LEFT, return the value on the RIGHT):\nA7, ไหล่ย่น → \"A7 | ไหล่ย่น\"; A8, ก้นย่น → \"A8 | ก้นย่น\"; A2, ลำตัวพับ → \"A2 | ลำตัวพับ\"; A1, คอขวดและ Support ring เสียรูปทรง → \"A1 | คอขวดและ Support ring เสียรูปทรง\"; B1, ผิวขวดมีรูรั่ว → \"B1 | ผิวขวดมีรูรั่ว\"; B2, ผิวขวดเสี่ยงรั่ว → \"B2 | ผิวขวดเสี่ยงรั่ว\"; C1, ปากขวดแหว่ง → \"C1 | ปากขวดแหว่ง\"; C3, Support ring แหว่ง → \"C3 | Support ring แหว่ง\"; D8, ไหล่ริ้ว → \"D8 | ไหล่ริ้ว\"; D11, ไหล่ขวดนิ่ม → \"D11 | ไหล่ขวดนิ่ม\"; D12, ไหล่ขวดมีความหนากว่าปกติ → \"D12 | ไหล่ขวดมีความหนากว่าปกติ\"; D10, ก้นนิ่ม → \"D10 | ก้นนิ่ม\"; D13, ก้นขวดมีความหนากว่าปกติ → \"D13 | ก้นขวดมีความหนากว่าปกติ\"; E2, ขวดมีลักษณะขาวขุ่นทึบ → \"E2 | ขวดมีลักษณะขาวขุ่นทึบ\"; E3, ขวดมีลักษณะขาวขุ่น → \"E3 | ขวดมีลักษณะขาวขุ่น\"; D9, เส้นผ่านศูนย์กลางใหญ่กว่ามาตรฐาน → \"D9 | เส้นผ่านศูนย์กลางใหญ่กว่ามาตรฐาน\"; D6, ปากขวดโตกว่าปกติ → \"D6 | ปากขวดโตกว่าปกติ\"; D7, Support ring กว้างกว่ามาตรฐาน → \"D7 | Support ring กว้างกว่ามาตรฐาน\"; F2, พลาสติกบริเวณ Support ring เกินออกมา → \"F2 | พลาสติกบริเวณ Support ring เกินออกมา\"; F3, พลาสติกบริเวณก้นขวดเกินออกมา → \"F3 | พลาสติกบริเวณก้นขวดเกินออกมา\"; D2, ปริมาตรเกินมาตรฐาน → \"D2 | ปริมาตรเกินมาตรฐาน\"; D1, ปริมาตรต่ำกว่ามาตรฐาน → \"D1 | ปริมาตรต่ำกว่ามาตรฐาน\"; C9, คอแหวน → \"C9 | คอแหวน\"; C11, เงาแหวน → \"C11 | เงาแหวน\"; G1, เกตคัทติดขวด → \"G1 | เกตคัทติดขวด\"; C12, บริเวณด้านในเป็นวงแหวนเล็ก → \"C12 | บริเวณด้านในเป็นวงแหวนเล็ก\"; C6, ไหล่ยุบ → \"C6 | ไหล่ยุบ\"; C2, ปากขวดขึ้นรูปไม่เต็ม → \"C2 | ปากขวดขึ้นรูปไม่เต็ม\"; H1, หยดน้ำ → \"H1 | หยดน้ำ\"; H2, ฟองอากาศ → \"H2 | ฟองอากาศ\"; H5, คราบอากาศ → \"H5 | คราบอากาศ\"; I1, ก้นเบี้ยว → \"I1 | ก้นเบี้ยว\"; G4, เส้นพลาสติกติดขวด → \"G4 | เส้นพลาสติกติดขวด\"; J1, ขวดมีรอยบุบ → \"J1 | ขวดมีรอยบุบ\"; J6, ขวดมีรอยขีดข่วน → \"J6 | ขวดมีรอยขีดข่วน\"; J4, ขวดมีรอยขนแมว → \"J4 | ขวดมีรอยขนแมว\"; D3, TOP LOAD ต่ำกว่ามาตรฐาน → \"D3 | TOP LOAD ต่ำกว่ามาตรฐาน\"; A5, เกลียวของขวดมีรอยแตก → \"A5 | เกลียวของขวดมีรอยแตก\"; I2, เกตคัทยาว → \"I2 | เกตคัทยาว\"; K2, เป่าไม่ออก → \"K2 | เป่าไม่ออก\"; K1, เป่ารั่ว → \"K1 | เป่ารั่ว\"; D4, ความแข็งแรงต่ำ → \"D4 | ความแข็งแรงต่ำ\"; D5, ขวดมีความแข็งต่ำ → \"D5 | ขวดมีความแข็งต่ำ\"; H6, ผิวเป็นตุ่ม → \"H6 | ผิวเป็นตุ่ม\"; D14, มีปริมาณ A.A. สูง → \"D14 | มีปริมาณ A.A. สูง\"; L1, เนื้อพลาสติกมีคราบสนิมติดอยู่ → \"L1 | เนื้อพลาสติกมีคราบสนิมติดอยู่\"; H4, คราบน้ำ → \"H4 | คราบน้ำ\"; L2, คราบน้ำมัน → \"L2 | คราบน้ำมัน\"; M1, สิ่งแปลกปลอมภายในสินค้า → \"M1 | สิ่งแปลกปลอมภายในสินค้า\"; M2, จุดดำ → \"M2 | จุดดำ\"; A3, คอพับ → \"A3 | คอพับ\"; N5, ฉลากเอียง → \"N5 | ฉลากเอียง\"; N1, ฉลากหลุดออกจากขวด → \"N1 | ฉลากหลุดออกจากขวด\"; N4, ฉลากอยู่สูง-ต่ำกว่ามาตรฐาน → \"N4 | ฉลากอยู่สูง-ต่ำกว่ามาตรฐาน\"; N7, ฉลากย่น → \"N7 | ฉลากย่น\"; O1, ฉลากมีรอยฉีกขาด → \"O1 | ฉลากมีรอยฉีกขาด\"; N2, ขวดไม่มีการสวมฉลาก → \"N2 | ขวดไม่มีการสวมฉลาก\"; P1, ตัวอักษร สี ขนาด ไม่ได้ตามมาตรฐาน → \"P1 | ตัวอักษร สี ขนาด ไม่ได้ตามมาตรฐาน\"; O2, ฉลากเว้า → \"O2 | ฉลากเว้า\"; N6, ฉลากตัดไม่ขาด → \"N6 | ฉลากตัดไม่ขาด\"; N3, ฉลากกลับหัว → \"N3 | ฉลากกลับหัว\"; L3, คราบน้ำบริเวณก้น → \"L3 | คราบน้ำบริเวณก้น\"; J3, พลาสติกติดแม่พิมพ์ → \"J3 | พลาสติกติดแม่พิมพ์\"; H3, ละอองน้ำ → \"H3 | ละอองน้ำ\"; J2, ขวดมีรอยประกบใหญ่ → \"J2 | ขวดมีรอยประกบใหญ่\"; E4, ก้นขวดขาวขุ่น → \"E4 | ก้นขวดขาวขุ่น\"; C8, ก้นไม่เต็ม → \"C8 | ก้นไม่เต็ม\"; C4, ก้นเว้า → \"C4 | ก้นเว้า\"; C5, ลำตัวเว้า → \"C5 | ลำตัวเว้า\"; J5, ปากขวดมีรอยขูด → \"J5 | ปากขวดมีรอยขูด\"; C10, ไหล่ดอกไม้ → \"C10 | ไหล่ดอกไม้\"; E1, คอขาว → \"E1 | คอขาว\"; J7, เกตคัทมีรอยยุบด้านใน → \"J7 | เกตคัทมีรอยยุบด้านใน\"; C7, ลำตัวย่น → \"C7 | ลำตัวย่น\"; A4, ปากไม่กลม → \"A4 | ปากไม่กลม\"; F1, พลาสติกบริเวณเกลียวเกินออกมา → \"F1 | พลาสติกบริเวณเกลียวเกินออกมา\"; A6, ก้นปูด → \"A6 | ก้นปูด\"; G2, เม็ดพลาสติกติดขวด → \"G2 | เม็ดพลาสติกติดขวด\"; G3, เม็ดไม่ละลาย → \"G3 | เม็ดไม่ละลาย\"; Q1, ผลการทดสอบในใบ COA ไม่ผ่านสเปก → \"Q1 | ผลการทดสอบในใบ COA ไม่ผ่านสเปก\"; Q2, ใบ COA ไม่ตรงกับสินค้าที่จัดส่ง → \"Q2 | ใบ COA ไม่ตรงกับสินค้าที่จัดส่ง\"; Q3, ใบ COA ของวัตถุดิบมีค่าไม่ผ่านตาม Spec. → \"Q3 | ใบ COA ของวัตถุดิบมีค่าไม่ผ่านตาม Spec.\"; Q4, ใบ COA ลงรายละเอียดไม่ถูกต้อง → \"Q4 | ใบ COA ลงรายละเอียดไม่ถูกต้อง\"; N8, ฉลากไม่ได้อบ → \"N8 | ฉลากไม่ได้อบ\"; N9, ตัดฉลากไม่ตรงตำแหน่ง → \"N9 | ตัดฉลากไม่ตรงตำแหน่ง\"; N10, ฉลากพับ → \"N10 | ฉลากพับ\"; R2, เม็ดมีความชื้นสูง → \"R2 | เม็ดมีความชื้นสูง\"; R1, เม็ดพลาสติกมีสิ่งปลอมปน → \"R1 | เม็ดพลาสติกมีสิ่งปลอมปน\"; M3, ก้นดำ → \"M3 | ก้นดำ\"; E5, ไหล่ขาว → \"E5 | ไหล่ขาว\"; S1, ขวดสินค้าชนิดอื่นปนในถุงบรรจุ → \"S1 | ขวดสินค้าชนิดอื่นปนในถุงบรรจุ\"; T1, จำนวนขวดไม่เต็มแพ็ค → \"T1 | จำนวนขวดไม่เต็มแพ็ค\"; T2, จำนวนขวดเกิน → \"T2 | จำนวนขวดเกิน\"; U1, เรียงขวดในถุงบรรจุภัณฑ์ไม่ได้ตามมาตรฐาน → \"U1 | เรียงขวดในถุงบรรจุภัณฑ์ไม่ได้ตามมาตรฐาน\"; U2, ติดเทปกาวไม่ได้ตามกำหนด → \"U2 | ติดเทปกาวไม่ได้ตามกำหนด\"; D15, ลำตัวนิ่ม → \"D15 | ลำตัวนิ่ม\"; D16, ก้นลาย → \"D16 | ก้นลาย\"; C13, รอยปื้น → \"C13 | รอยปื้น\"; A9, ขวดลู่ → \"A9 | ขวดลู่\"; A10, รอยร้าว → \"A10 | รอยร้าว\"; D17, สีไม่ได้ตามมาตรฐาน → \"D17 | สีไม่ได้ตามมาตรฐาน\"; A11, คอปูด → \"A11 | คอปูด\"; K3, หลอดไม่ถูกเป่าขึ้นรูป → \"K3 | หลอดไม่ถูกเป่าขึ้นรูป\"; A12, ขวดโดนความร้อนจากไดร์ → \"A12 | ขวดโดนความร้อนจากไดร์\"; A13, ขวดโดนความร้อนจากตู้อบฟิล์ม → \"A13 | ขวดโดนความร้อนจากตู้อบฟิล์ม\"; J8, ผิวปากขวดไม่เนียน → \"J8 | ผิวปากขวดไม่เนียน\"; M4, เนื้อพลาสติกไหม้ → \"M4 | เนื้อพลาสติกไหม้\"; J9, รอยประกบไม่ได้ระนาบ → \"J9 | รอยประกบไม่ได้ระนาบ\"; J10, รอยแม่พิมพ์ → \"J10 | รอยแม่พิมพ์\"; J11, ลายหลอดพรีฟอร์ม → \"J11 | ลายหลอดพรีฟอร์ม\"; V1, ชื่อสินค้าในใบส่งมอบไม่ถูกต้อง → \"V1 | ชื่อสินค้าในใบส่งมอบไม่ถูกต้อง\"; V2, ติดป้าย QR CODE ผิดประเภทสินค้า → \"V2 | ติดป้าย QR CODE ผิดประเภทสินค้า\"; V3, ป้าย QR CODE ฉีกขาด → \"V3 | ป้าย QR CODE ฉีกขาด\"; V4, สแกนป้าย QR CODE ซ้ำ → \"V4 | สแกนป้าย QR CODE ซ้ำ\"; U3, นำ้หนักบรรจุภัณฑ์ไม่ได้ตามมาตรฐาน → \"U3 | นำ้หนักบรรจุภัณฑ์ไม่ได้ตามมาตรฐาน\"; J12, คอขวดมีรอยขูด → \"J12 | คอขวดมีรอยขูด\"; A14, ก้นมีรอยแตก → \"A14 | ก้นมีรอยแตก\"; U4, ส่ิงแปลกปลอมภายในห่อสินค้า → \"U4 | ส่ิงแปลกปลอมภายในห่อสินค้า\"; N11, ฉลากรัด → \"N11 | ฉลากรัด\"; F4, พลาสติกบริเวณคอขวดเกินออกมา → \"F4 | พลาสติกบริเวณคอขวดเกินออกมา\"; A15, คอเอียง → \"A15 | คอเอียง\"; A16, ขวดหดตัวเสียรูปทรง → \"A16 | ขวดหดตัวเสียรูปทรง\"; U5, เลือกถุงบรรจุภัณฑ์ผิด → \"U5 | เลือกถุงบรรจุภัณฑ์ผิด\"; B3, รอยประกบแตก → \"B3 | รอยประกบแตก\"; E6, Support ring ขาว → \"E6 | Support ring ขาว\"\n\nRules:\n1. Read every column left-to-right — do NOT skip any column, even if empty\n2. For each cell, read the Thai text visible in the image, find the closest match on the LEFT side of the mapping table, then return the corresponding RIGHT side value\n3. If a cell is empty or unreadable, use null\n4. The single row must have exactly 9 keys: A, B, C, D, E, F, G, H, I in \"response\"\n5. Data is filled left-to-right with no gaps — once a null appears, all subsequent columns are also null\n6. Return ONLY valid JSON, no explanation or markdown\n\nOutput format:\n{ \"output\": [ { \"row\": 1, \"response\": { \"A\": \"<value or null>\", \"B\": \"<value or null>\", \"C\": \"<value or null>\", \"D\": \"<value or null>\", \"E\": \"<value or null>\", \"F\": \"<value or null>\", \"G\": \"<value or null>\", \"H\": \"<value or null>\", \"I\": \"<value or null>\" } } ] }",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        4048,
+        96
+      ],
+      "id": "dd7470a5-a5d4-406d-9414-a716cb6dfdc2",
+      "name": "ocr-agent-2",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nvar output = {};\n\nfor (const item of $input.all()) {\n  try {\n    let rawText = item.json.candidates[0].content.parts[0].text;\n    const regex = /```json\\s*([\\s\\S]*?)\\s*```/i;\n    const match = rawText.match(regex);\n    let cleanText = \"\";\n    if (match && match[1]) {\n      cleanText = match[1].trim();\n    } else {\n      cleanText = rawText.trim().replace(/^```(json)?/i, '').replace(/```$/i, '').trim();\n    }\n    let parsedData = JSON.parse(cleanText);\n    if (Array.isArray(parsedData)) {\n      for (const row of parsedData) {\n        results.push({ json: (typeof row === 'object' && row !== null) ? row : { value: row } });\n      }\n    } else if (typeof parsedData === 'object' && parsedData !== null) {\n      if (parsedData.output && Array.isArray(parsedData.output)) {\n        for (const row of parsedData.output) {\n          results.push({ json: row });\n        }\n      } else {\n        for (const key in parsedData) {\n          let row = parsedData[key];\n          if (typeof row === 'object' && row !== null && !Array.isArray(row)) {\n            if (!row.row_id) row.row_id = key;\n            results.push({ json: row });\n          } else {\n            results.push({ json: { row_id: key, value: row } });\n          }\n        }\n      }\n    } else {\n      results.push({ json: { result: parsedData } });\n    }\n  } catch (error) {\n    results.push({ json: { error: \"Failed to parse JSON\", details: error.message } });\n  }\n}\n\noutput = { \"tb\": \"tb_colheaders\", \"result\": results };\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4240,
+        96
+      ],
+      "id": "3a9134ed-e15e-4ce3-9cd7-4acb081063b9",
+      "name": "cvt-text-to-json-2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mergedRows = {};\nconst tables = $input.all().map(item => item.json);\ntables.forEach((table, tableIndex) => {\n  if (table.result && Array.isArray(table.result)) {\n    table.result.forEach((rowItem) => {\n      const rowData = rowItem.json;\n      if (rowData && rowData.row) {\n        const rowNum = rowData.row;\n        if (!mergedRows[rowNum]) { mergedRows[rowNum] = { row: rowNum }; }\n        if (rowData.response) {\n          for (const [key, value] of Object.entries(rowData.response)) {\n            let cleanValue = value;\n            if ((typeof cleanValue === 'string' && cleanValue.trim().toLowerCase() === 'null') || (typeof cleanValue === 'string' && cleanValue.trim() === '-')) {\n              cleanValue = null;\n            }\n            mergedRows[rowNum][key] = cleanValue;\n          }\n        }\n      }\n    });\n  }\n});\nconst finalResult = Object.values(mergedRows).sort((a, b) => a.row - b.row);\nreturn finalResult.map(row => ({ json: row }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4816,
+        96
+      ],
+      "id": "22457eb9-7b23-41f8-be73-5bb544f053fa",
+      "name": "set-format-input-2"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-pro-preview-customtools",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-pro-preview-customtools"
+        },
+        "text": "=You are an OCR extraction agent. Extract all data from the MAIN DATA TABLE of the form in the image.\n\nThe image contains a quality-control form with several sections. Focus ONLY on the main data table that occupies the lower portion of the form. It can be identified by its columns: Checker Name, Tag No., Production Lot No., Time, nine Nonconforming-Product quantity columns, and Operator Name.\nDo NOT read the column header row. Do NOT extract the product/machine/date header band at the top.\n\nTable structure:\n- Rows: 30 rows total (including every empty row at the bottom)\n- Columns: 14 columns labeled A through N\n\nPer-column rules:\n- A: Mapping table (read the Thai text in the cell, find the closest match on the LEFT, return the value on the RIGHT):\nเล็ก → \"จิราวรรณ ชูขาว (เล็ก)\"; จุ๋ม → \"วันวิสาวดี สีระวงษา (จุ๋ม)\"; ทูซา → \"KHIN THUZAR HTET (ทูซา)\"; แอ → \"KAY THWE MOE (แอ)\"; และ → \"LAE YIN MON (และ)\"; ซานเค → \"SAN KHIN (ซานเค)\"; นิวเวย์ → \"HNIN WAI@NIW WAY (นิวเวย์)\"; ตู่วิน → \"THU THU WIN (ตู่วิน)\"; เทย์ → \"HTAY HTAY WIN (เทย์)\"; ใหม่ → \"TIN TIN KHAING (ใหม่)\"; โม → \"THANDAR MOE (โม)\"; ตัง → \"MYINT MYINT THAN (ตัง)\"; คิน → \"KHIN THU ZAR (คิน)\"; ทิดา → \"KHIN THIDA THWE (ทิดา)\"; โอน → \"OHNMAR HTWE (โอน)\"; จี้ → \"JEE JEE MYINT (จี้)\"; ฮามีดา → \"KHAING KHIN TUN (ฮามีดา)\"; วิน → \"THANDAR WIN (วิน)\"; เซ็น → \"ZIN MAR MYINT (เซ็น)\"; เอ → \"AYE AYE MOE (เอ)\"; ฟาง → \"กรกนก เรืองฤทธิ์ (ฟาง)\"; ปาล์ม → \"ธนารักษ์ ฉลอม (ปาล์ม)\"; เจน → \"เจนจิรา วงศ์สว่างจิตร (เจน)\"; มัท → \"อรัญญา แสงจันทร์ (มัท)\"; ตาล → \"สุพัตรา อูลโล (ตาล)\"; หนึ่ง → \"สุนีรัตน์ จตุรวงค์ (หนึ่ง)\"; น้ำฝน → \"มลฤดี สมญา (น้ำฝน)\"; แนน → \"วราภรณ์ พละวัฒน์ (แนน)\"; เนย → \"จริยา แสนแก้ว (เนย)\"; ยุ้ย → \"นภาพร หรสิทธิ์ (ยุ้ย)\"; กบ → \"สุวนันท์ สันทะมาตย์ (กบ)\"; บีม → \"วรรณศิริ แซ่แบ๊ (บีม)\"; นัท → \"ณัฐสุดา พลายละมูล (นัท)\"; หมวย → \"ชฎาพร ลามนเทียน (หมวย)\"; อาเซีย → \"สุธิดา มนตรีวิสัย (อาเซีย)\"; ปริม → \"ณัฐกานต์ ปรมัตถ์ (ปริม)\"; เอ๊ะ → \"เอ๊ะ\"; แบม → \"แบม\"; มอส → \"มอส\"; อิ → \"อิ\"; แมะ → \"แมะ\"; บ๊วย → \"ชนาพร เพิ่มเขียว (บ๊วย)\"; แต๊ะ → \"THAE EI HLAING (แต๊ะ)\"; มาว → \"AYE AYE MAW (มาว)\"; ทวย → \"MOH MOH HTWE (ทวย)\"; มน → \"MYA MYA MON (มน)\"; กุ้กกิ๊ก → \"พรทิวา ชูจันทร์ (กุ้กกิ๊ก)\"; กิ่ง → \"ณกมล ลิลน์ อินใจ (กิ่ง)\". If a value does not match any option, pick the closest match. If no match is possible, set null.\n\n- B: a number returned as a STRING, or null. Preserve any leading zeros exactly as written (e.g. \"0317\", \"0316\", \"0163\") — do NOT drop leading zeros and do NOT convert to an integer. Nothing else.\n\n- C: \n  1. Output a DATE ONLY.\n  2. Convert the Thai Buddhist year to the Gregorian/Christian year (subtract 543; a 2-digit year such as 69 means B.E. 2569 -> A.D. 2026).\n  3. Output format MUST be \"mm/dd/yyyy\" with a slash \"/\" as the separator and zero-padded month and day (e.g. 26 May 2569 -> \"05/26/2026\").\n  4. GUARANTEE: the production date is ALWAYS on or before {{ $('set-id').item.json.date_p }} (format mm/dd/yyyy) — it is NEVER a future date relative to {{ $('set-id').item.json.date_p }}. Use this fact to disambiguate hard-to-read handwriting and pick the reading that is on or before {{ $('set-id').item.json.date_p }}. Do NOT discard or null a value just because of this rule; only set null if the cell is genuinely blank or unreadable.\n\n- D: time format only (e.g. \"08:00\", \"20:00\"). If the cell is not a time, set null.\n\n- E to M: a number, or null. Nothing else.\n\n- N: Mapping table (read the Thai text in the cell, find the closest match on the LEFT, return the value on the RIGHT):\nเล็ก → \"จิราวรรณ ชูขาว (เล็ก)\"; จุ๋ม → \"วันวิสาวดี สีระวงษา (จุ๋ม)\"; ทูซา → \"KHIN THUZAR HTET (ทูซา)\"; แอ → \"KAY THWE MOE (แอ)\"; และ → \"LAE YIN MON (และ)\"; ซานเค → \"SAN KHIN (ซานเค)\"; นิวเวย์ → \"HNIN WAI@NIW WAY (นิวเวย์)\"; ตู่วิน → \"THU THU WIN (ตู่วิน)\"; เทย์ → \"HTAY HTAY WIN (เทย์)\"; ใหม่ → \"TIN TIN KHAING (ใหม่)\"; โม → \"THANDAR MOE (โม)\"; ตัง → \"MYINT MYINT THAN (ตัง)\"; คิน → \"KHIN THU ZAR (คิน)\"; ทิดา → \"KHIN THIDA THWE (ทิดา)\"; โอน → \"OHNMAR HTWE (โอน)\"; จี้ → \"JEE JEE MYINT (จี้)\"; ฮามีดา → \"KHAING KHIN TUN (ฮามีดา)\"; วิน → \"THANDAR WIN (วิน)\"; เซ็น → \"ZIN MAR MYINT (เซ็น)\"; เอ → \"AYE AYE MOE (เอ)\"; ฟาง → \"กรกนก เรืองฤทธิ์ (ฟาง)\"; ปาล์ม → \"ธนารักษ์ ฉลอม (ปาล์ม)\"; เจน → \"เจนจิรา วงศ์สว่างจิตร (เจน)\"; มัท → \"อรัญญา แสงจันทร์ (มัท)\"; ตาล → \"สุพัตรา อูลโล (ตาล)\"; หนึ่ง → \"สุนีรัตน์ จตุรวงค์ (หนึ่ง)\"; น้ำฝน → \"มลฤดี สมญา (น้ำฝน)\"; แนน → \"วราภรณ์ พละวัฒน์ (แนน)\"; เนย → \"จริยา แสนแก้ว (เนย)\"; ยุ้ย → \"นภาพร หรสิทธิ์ (ยุ้ย)\"; กบ → \"สุวนันท์ สันทะมาตย์ (กบ)\"; บีม → \"วรรณศิริ แซ่แบ๊ (บีม)\"; นัท → \"ณัฐสุดา พลายละมูล (นัท)\"; หมวย → \"ชฎาพร ลามนเทียน (หมวย)\"; อาเซีย → \"สุธิดา มนตรีวิสัย (อาเซีย)\"; ปริม → \"ณัฐกานต์ ปรมัตถ์ (ปริม)\"; เอ๊ะ → \"เอ๊ะ\"; แบม → \"แบม\"; มอส → \"มอส\"; อิ → \"อิ\"; แมะ → \"แมะ\"; บ๊วย → \"ชนาพร เพิ่มเขียว (บ๊วย)\"; แต๊ะ → \"THAE EI HLAING (แต๊ะ)\"; มาว → \"AYE AYE MAW (มาว)\"; ทวย → \"MOH MOH HTWE (ทวย)\"; มน → \"MYA MYA MON (มน)\"; กุ้กกิ๊ก → \"พรทิวา ชูจันทร์ (กุ้กกิ๊ก)\"; กิ่ง → \"ณกมล ลิลน์ อินใจ (กิ่ง)\". If a value does not match any option, pick the closest match. If no match is possible, set null.\n\n\nRules:\n1. Read every row and every column — do NOT skip any row or column, even if empty\n2. If a cell is empty or has no value, use null — never omit it\n3. Every row must have exactly 14 keys (A..N) in \"response\"\n4. Return ONLY valid JSON, no explanation or markdown\n\nOutput format:\n{ \"output\": [ { \"row\": 1, \"response\": { \"A\": \"<v|null>\", \"B\": \"<v|null>\", \"C\": \"<v|null>\", \"D\": \"<v|null>\", \"E\": \"<v|null>\", \"F\": \"<v|null>\", \"G\": \"<v|null>\", \"H\": \"<v|null>\", \"I\": \"<v|null>\", \"J\": \"<v|null>\", \"K\": \"<v|null>\", \"L\": \"<v|null>\", \"M\": \"<v|null>\", \"N\": \"<v|null>\" } } ] }",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        4048,
+        304
+      ],
+      "id": "14be016d-f73b-4a55-8ac6-3c909738b274",
+      "name": "ocr-agent-3",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nvar output = {};\n\nfor (const item of $input.all()) {\n  try {\n    let rawText = item.json.candidates[0].content.parts[0].text;\n    const regex = /```json\\s*([\\s\\S]*?)\\s*```/i;\n    const match = rawText.match(regex);\n    let cleanText = \"\";\n    if (match && match[1]) {\n      cleanText = match[1].trim();\n    } else {\n      cleanText = rawText.trim().replace(/^```(json)?/i, '').replace(/```$/i, '').trim();\n    }\n    let parsedData = JSON.parse(cleanText);\n    if (Array.isArray(parsedData)) {\n      for (const row of parsedData) {\n        results.push({ json: (typeof row === 'object' && row !== null) ? row : { value: row } });\n      }\n    } else if (typeof parsedData === 'object' && parsedData !== null) {\n      if (parsedData.output && Array.isArray(parsedData.output)) {\n        for (const row of parsedData.output) {\n          results.push({ json: row });\n        }\n      } else {\n        for (const key in parsedData) {\n          let row = parsedData[key];\n          if (typeof row === 'object' && row !== null && !Array.isArray(row)) {\n            if (!row.row_id) row.row_id = key;\n            results.push({ json: row });\n          } else {\n            results.push({ json: { row_id: key, value: row } });\n          }\n        }\n      }\n    } else {\n      results.push({ json: { result: parsedData } });\n    }\n  } catch (error) {\n    results.push({ json: { error: \"Failed to parse JSON\", details: error.message } });\n  }\n}\n\noutput = { \"tb\": \"tb_data\", \"result\": results };\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4240,
+        304
+      ],
+      "id": "f3fb5734-fbb7-4998-b312-24fee3017266",
+      "name": "cvt-text-to-json-3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mergedRows = {};\nconst tables = $input.all().map(item => item.json);\ntables.forEach((table, tableIndex) => {\n  if (table.result && Array.isArray(table.result)) {\n    table.result.forEach((rowItem) => {\n      const rowData = rowItem.json;\n      if (rowData && rowData.row) {\n        const rowNum = rowData.row;\n        if (!mergedRows[rowNum]) { mergedRows[rowNum] = { row: rowNum }; }\n        if (rowData.response) {\n          for (const [key, value] of Object.entries(rowData.response)) {\n            let cleanValue = value;\n            if ((typeof cleanValue === 'string' && cleanValue.trim().toLowerCase() === 'null') || (typeof cleanValue === 'string' && cleanValue.trim() === '-')) {\n              cleanValue = null;\n            }\n            mergedRows[rowNum][key] = cleanValue;\n          }\n        }\n      }\n    });\n  }\n});\nconst finalResult = Object.values(mergedRows).sort((a, b) => a.row - b.row);\nreturn finalResult.map(row => ({ json: row }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4816,
+        304
+      ],
+      "id": "82bf9d0d-1da8-4d6e-afab-95ceb88fcdb3",
+      "name": "set-format-input-3"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.5-flash"
+        },
+        "text": "=You are an OCR extraction agent.\n\nThe image contains a quality-control form with multiple sections. Focus ONLY on the HEADER band at the very top of the form (above the main data table). It contains the labeled fields: \"Product Name / ชื่อสินค้า\", \"Inspection Date / วันที่ตรวจเช็ค\", \"Product Code / รหัสสินค้า\", and \"Machine No. / ชื่อเครื่องจักร\".\nDo NOT extract anything from the main data table or the column-header row below it.\n\nReturn the header fields as 4 cols:\n- col 1 = Product Name (the value next to ชื่อสินค้า)\n- col 2 = Inspection Date (the value next to วันที่ตรวจเช็ค)\n- col 3 = Product Code (the value next to รหัสสินค้า)\n- col 4 = Machine No. (the value next to ชื่อเครื่องจักร)\n\nField rules:\n- col 1 Product Name: resolve using a two-tier lookup.\n    List 1 = [{{ $json.produce_name }}]\n    List 2 = [\"ขวดอนันดา 350 | ขวดเปล่า | 18.5 ±1 | ใส\", \"บจก.อัมพร มาร์เก็ทติ้ง (380 CC.) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเคลลี่ 450 | ขวดเปล่า | 20 ±1 | ใส\", \"ขวดเอคิววายซอส (500 CC.) | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดไบเล่ 250 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดไบเล่ 370 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดบางกอก 320 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเบลมองด์ 500 | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดโบว์ลิ่งสยาม 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดโบว์ลิ่ง 330 | ขวดเปล่า | 15.5 ±1 | ฟ้าใส\", \"ขวดโบว์ลิ่ง 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเหลี่ยมเพชรล่าง 330 (CL Series) | ขวดเปล่า | 13.5 ±1 | ฟ้าใส\", \"ขวดเหลี่ยมเพชรล่าง 550 (CL Series) | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดโคโคโซ่ 320 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดโชคมหาชัย 350 | ขวดเปล่า | 21 ±1 | เขียวเข้ม\", \"ขวด CPC 1 ลิตร | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดเกลียว 1 ลิตร | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดคริสตัล 1500 | ขวดเปล่า | 43 ±1 | ฟ้า\", \"ขวดคริสตัล 1500 (ทรงกลม) | ขวดเปล่า | 35 ±1 | ฟ้าใส\", \"ขวดคริสตัล 600 | ขวดเปล่า | 18.5 ±1 | ฟ้า\", \"ขวดเซ็นทรัล 330 | ขวดเปล่า | 13.5 ±1 | ฟ้าใส\", \"ขวดเซ็นทรัล 350 | ขวดเปล่า | 18.5 ±1 | เขียว\", \"ขวดดีโด้ 500 เหลี่ยม | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดดิสมิธฟู้ด 435 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดดิสมิธฟู้ด 740 | ขวดเปล่า | 42 ±1 | ใส\", \"ขวดอีโม่ 330 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเหลี่ยมเพชรบน 500 | ขวดเปล่า | 19 ±1 | ฟ้าใส\", \"ขวดฟิวเจอร์ 500 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดโฮมช้อยส์ 1500 (HO Series) | ขวดเปล่า | 36 ±1 | ฟ้าใส\", \"ขวดโฮมชอยส์ 600 (HO Series) | ขวดเปล่า | 21 ±1 | ฟ้าใส\", \"ขวดไอดีล 180 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไอดีล 180 มุก | ขวดเปล่า | 21 ±1 | ขาวมุก\", \"ขวดไอดีล 250 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดไอดีล 350 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไคโอ 350 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไอดีล 500 กลม | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไอดีล 500 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไอดีล 600 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดมะพร้าว 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"บจก.กรุงสยามเครื่องดื่ม (450 เปล่า) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเลอคูล 1500 (LC Series) | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดเลอคูล 330 (LC Series) | ขวดเปล่า | 13.5 ±1 | ใส\", \"ขวดเลอคูล 550 (LC Series) | ขวดเปล่า | 15.5 ±1 | ฟ้าใส\", \"ขวดหยก 1000 | ขวดเปล่า | 33 ±1 | ใส\", \"ขวดหยก 250 | ขวดเปล่า | 15 ±1 | ใส\", \"ขวดทับทิม 1 ลิตร | ขวดเปล่า | 35 ±1 | ใส\", \"Molecule Beverages 330ML | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดมายช้อยส์ 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดมองต์เฟลอ 1500 | ขวดเปล่า | 37 ±1 | ฟ้าใส\", \"ขวดมองต์เฟลอ 500 | ขวดเปล่า | 18.5 ±1 | ฟ้าใส\", \"ขวดมิเนเร่ 1500 (MI Series) | ขวดเปล่า | 43 ±1 | ใส\", \"ขวดมิเนเร่ 500 (MI Series) | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดมรกต 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดนูบูน 1000 | ขวดเปล่า | 42 ±1 | ใส\", \"ขวดนูบูน 250 | ขวดเปล่า | 15 ±1 | ใส\", \"ขวดนูบูน 300 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดนูบูน 500 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเนปจูน 600 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดน้ำทิพย์ 1500 | ขวดเปล่า | 37 ±1 | ฟ้าใส\", \"ขวดน้ำทิพย์ 600 | ขวดเปล่า | 18.5 ±1 | ฟ้าใส\", \"ขวดออนเดอะเทเบิ้ล 330 (OB Series) V1 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดออนเดอะเทเบิ้ล 330 (OB Series) (ตัวสั้น) V2 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดออนเดอะเทเบิ้ล 500 (OB Series) V1 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดออนเดอะเทเบิ้ล 500 (OB Series) V2 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดโอลีน 1 ลิตร | ขวดเปล่า | 33 ±1 | ใส\", \"ขวดโฮมเฟรชมาร์ท 1500 (OX Series) | ขวดเปล่า | 37 ±1 | ฟ้าใส\", \"ขวดโฮมเฟรชมาร์ท 330 (OX Series) | ขวดเปล่า | 13.5 ±1 | ใส\", \"ขวดโฮมเฟรชมาร์ท 600 (OX Series) | ขวดเปล่า | 15.5 ±1 | ฟ้าใส\", \"หลอดพรีฟอร์ม 19 กรัม | หลอดเปล่า | 19 ±1 | ใส\", \"หลอดพรีฟอร์ม 21 กรัม | หลอดเปล่า | 21 ±1 | ใส\", \"หลอดพรีฟอร์ม 36 กรัม | หลอดเปล่า | 36 ±1 | ใส\", \"หลอดพรีฟอร์ม 17 กรัม | หลอดเปล่า | 17 ±1 | ใส\", \"หจก.พี เอฟ ฟู้ด (380 เปล่า) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดพลอย 1000 (PL Series) | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดพลอย 250 (PL Series) | ขวดเปล่า | 15 ±1 | ใส\", \"ขวดแพนสยาม 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดแพนสยาม 500 | ขวดเปล่า | 26 ±1 | ใส\", \"ขวดเเสงนลินฟู้ดส์ 380 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดสิงห์ 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดเซ็ปเป้ 320 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเซ็ปเป้ 400 | ขวดเปล่า | 26 ±1 | ใส\", \"ขวดศรทอง 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"บจก.ไทยแอทลาส (320 เปล่า) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไทยอกริฟู้ดส์ 200 | ขวดเปล่า | 20 ±1 | ใส\", \"ขวดไทยอกริฟู้ดส์ 430 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดไทซัน 1000 (TI SERIES) | ขวดเปล่า | 43 ±1 | ใส\", \"ขวดไทซัน 1500 (TI SERIES) | ขวดเปล่า | 43 ±1 | ใส\", \"ขวดไทซัน 500 (TI SERIES) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดธาราทิพย์ 450 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวด 1000 กรีนเมท | ขวดเปล่า | 43 ±1 | ใส\", \"ขวด 250 สมูทตี้ | ขวดเปล่า | 20 ±1 | ใส\", \"ขวด 290 สมูทตี้ | ขวดเปล่า | 19 ±1 | ใส\", \"ขวด 400 กรีนเมท | ขวดเปล่า | 20 ±1 | ใส\", \"ขวด 400 BSC | ขวดเปล่า | 20 ±1 | ใส\", \"ขวดเคลลี่ 400 | ขวดเปล่า | 20 ±1 | ใส\", \"ขวดทานตะวัน 730 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวด Vince 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดองุ่น 1 ลิตร | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดองุ่น 2 ลิตร (VT Series) V1 | ขวดเปล่า | 58 ±1 | ใส\", \"ขวดองุ่น 2 ลิตร (VT Series) V2 | ขวดเปล่า | 58 ±1 | ใส\", \"บจก.เวิล์ดฟูดส์ (270 CC.) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดวารินิตี้ 320 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเอคิววายซอส (นาคาคุระ 1000 CC.) | ขวดเปล่า | 35 ±1 | ใส\", \"หลอดพรีฟอร์ม 17 กรัม (Hot Fill) | หลอดเปล่า | 17 ±1 | ใส\", \"ขวดโฮมเฟรชมาร์ท 330 (OX Series) (เทามุก 2.0) | ขวดเปล่า | 13.5 ±1 | เทามุก\", \"ขวดโฮมเฟรชมาร์ท 330 (OX Series) (เทามุก 2.5) | ขวดเปล่า | 13.5 ±1 | เทามุก\", \"ขวดเลอคูล 330 (LC Series) (เทามุก 2.0) | ขวดเปล่า | 13.5 ±1 | เทามุก\", \"ขวดเลอคูล 330 (LC Series) (เทามุก 2.5) | ขวดเปล่า | 13.5 ±1 | เทามุก\", \"ขวดโคโคนัท 235 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดแซ่บไมค์ 350 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเลอแม็ก 300 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดโซ 400 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดคณา 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดคณา 500 V2 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดน้ำปลาร้าหม่ำ 350 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเนอร์วาน่า 550 | ขวดเปล่า | 38.5 ±1 | ใส\", \"ขวดเบียร์ 330 V2 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดไทยเท 250 | ขวดเปล่า | 17 ±1 | ใส\", \"ขวดเบลมองด์ 220 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดน้ำมันรำข้าว 550 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวด 7coin 300 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดแก้วแวคคัม 350 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดแวคคัม 600 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดจรวด 435 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดเจ็นเจ 350 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดคอมมานโด 600 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดอินโนเฟรช 465 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดอินโนเฟรช 455 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดน้ำดื่ม 2000 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดปาปาแพค 150 KR | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดปาปาแพค 200 KR | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดปาปาแพค 220 KR | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดปาปาแพค 250 KR | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเบลมองด์ 1000 | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดเบลมองด์ 500 (Online) | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดฉั่วฮะเส็ง 380 | ขวดเปล่า | 22 ±1 | ใส\", \"ขวดบีสปอร์ต 320 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดโฮมเฟรชมาร์ท 1000 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเอโร่ 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดอนันดา 320 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเซ็นทรัล 330 V2 | ขวดเปล่า | 18.5 ±1 | ใส\", \"หลอดพรีฟอร์ม 12 กรัม | หลอดเปล่า |  | ใส\", \"หลอดพรีฟอร์ม 14 กรัม | หลอดเปล่า |  | ใส\", \"หลอดพรีฟอร์ม 26 กรัม | หลอดเปล่า |  | ใส\", \"ขวดนูบูน 1000 | ขวดเปล่า | 42 ±1 | ใส\", \"ขวดซากุระ 700 | ขวดเปล่า | 22.7 ±1 | ใส\", \"ขวดกรุงสยาม 450 V2 | ขวดเปล่า | 22 ±1 | ใส\", \"ขวดไทฮันนี่ 700 | ขวดเปล่า | 43 ±1 | ใส\", \"หลอดพรีฟอร์ม 16 กรัม | หลอดเปล่า | 16 ±1 | ใส\", \"หลอดพรีฟอร์ม 22.7 กรัม | หลอดเปล่า | 22.7 ±1 | ใส\", \"ขวด Vince 1000 | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดไอดีล 450 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดซากุระ 500 | ขวดเปล่า | 22.7 ±1 | ใส\", \"ขวดวาลาไทย 320 | ขวดเปล่า | 17 ±1 | ใส\", \"หจก.พี เอฟ ฟู้ด (380 เปล่า) V2 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเหล่าธงสิงห์ 1000 | ขวดเปล่า | 35 ±1 | ใส\"]\n    Lookup order:\n      1. First try to match the value against List 1. If it matches (or closely matches) an option in List 1, return that List 1 value.\n      2. If, and only if, no match is found in List 1, try to match against List 2. If it matches (or closely matches) an option in List 2, return that List 2 value.\n      3. If no match is found in either list, set null.\n    Note: List 1 takes priority. Only fall back to List 2 when List 1 yields no match.\n\n- col 2 Inspection Date: \"{{ $('set-id').item.json.date_p }}\"\n\n- col 3 Product Code: must be exactly one of [\"AN-350-CC\", \"AP-380-CC\", \"TS-450-CC\", \"AQ-500-CC\", \"BI-250-CC\", \"BI-370-CC\", \"BK-320-CC\", \"BL-400-CC\", \"BM-500-CC\", \"BS-500-CC\", \"BW-330-CC\", \"BW-500-CC\", \"CL-330-CC\", \"CL-400-CC\", \"CL-550-CC\", \"CM-320-CC\", \"CM-350-CC\", \"CO-1000-CC-V1\", \"CO-1000-CC-V2\", \"CT-1500-CC-V1\", \"CT-1500-CC-V2\", \"CT-600-CC\", \"CTR-330-CC\", \"CTR-330-CC-V2\", \"CTR-350-CC\", \"DD-500-CC\", \"DS-435-CC\", \"DS-740-CC\", \"EM-330-CC-V1\", \"FJ-500-CC\", \"FT-500-CC\", \"HO-1500-CC\", \"HO-600-CC\", \"ID-180-CC\", \"ID-180-WH\", \"ID-250-CC\", \"ID-350-CC-V1\", \"ID-350-CC-V2\", \"ID-450-CC\", \"ID-500-CC-V1\", \"ID-500-CC-V2\", \"ID-600-CC\", \"ID-1000-CC\", \"JM-1000-CC\", \"KS-450-CC\", \"KS-450-CC-V2\", \"LC-1500-CC\", \"LC-330-CC\", \"LC-550-CC\", \"LC-550-GG\", \"LS-1000-CC\", \"LS-250-CC\", \"LT-1000-CC\", \"MB-330-CC\", \"MC-500-CC\", \"MF-1500-CC\", \"MF-500-CC\", \"MI-1500-CC\", \"MI-500-CC\", \"MK-1000-CC\", \"NB-250-CC\", \"NB-300-CC\", \"NB-500-CC\", \"NB-1000-CC\", \"NJ-600-CC\", \"NT-1500-CC\", \"NT-600-CC\", \"OB-330-CC-V1\", \"OB-330-CC-V2\", \"OB-500-CC-V1\", \"OB-500-CC-V2\", \"OL-1000-CC\", \"OX-330-CC\", \"OX-600-CC\", \"OX-1000-CC\", \"OX-1500-CC\", \"PF-PCO-1810-19G\", \"PF-PCO-1810-21G\", \"PF-PCO-1810-36G\", \"PF-PCO-1881-17G\", \"PF-PCO-1881-17G-HF\", \"PFF-380-CC\", \"PFF-380-CC-V2\", \"PL-1000-CC\", \"PL-250-CC\", \"PS-1000-CC\", \"PS-500-CC\", \"SF-380-CC\", \"SG-1000-CC\", \"SP-320-CC\", \"SP-400-CC\", \"ST-1000-CC\", \"TA-320-CC\", \"TG-200-CC\", \"TG-430-CC\", \"TI-500-CC\", \"TI-500-CC-V2\", \"TI-1000-CC\", \"TI-1500-CC\", \"TR-450-CC\", \"TS-250-CC\", \"TS-290-CC\", \"TS-400-CC-V1\", \"TS-400-CC-V2\", \"TS-400-CC-V3\", \"TS-1000-CC\", \"TW-730-CC\", \"VN-500-CC\", \"VT-1000-CC\", \"VT-2000-CC-V1\", \"VT-2000-CC-V2\", \"WF-270-CC\", \"WR-320-CC\", \"AQ-1000-CC\", \"CN-235-CC\", \"TI-500-CC-V2\", \"ZM-350-CC\", \"QQ-300-CC\", \"NR-550-CC\", \"SW-400-CC\", \"WL-500-CC-V1\", \"WL-500-CC-V2\", \"MU-350-CC\", \"BR-330-CC-V2\", \"GB-250-CC\", \"BM-220-CC\", \"RO-550-CC\", \"SC-300-CC\", \"VC-350-CC\", \"VC-600-CC\", \"RK-435-CC\", \"JJ-350-CC\", \"CM-600-CC\", \"IN-465-CC\", \"HM-2000-CC\", \"KR-200-CC\", \"KR-250-CC\", \"CH-380-CC\", \"KR-150-CC\", \"KR-220-CC\", \"BB-320-CC\", \"FJ-500-CC\", \"BM-1000-CC\", \"AR-1000-CC\", \"AN-320-CC\", \"29/25 T-START-12.0G\", \"29/25 3-START-14.0G\", \"29/25 3-START-26.0G\", \"SK-700-CC\", \"TQ-700-CC\", \"LA-1000-CC\", \"SK-500-CC\", \"30/25 T-START-16.0G\", \"1881 T-START-22.7G\", \"IN-455-CC\", \"VL-320-CC\"]. If the value does not match any option, pick the closest match. If no match is possible, set null.\n\n- col 4 Machine No.: resolve using a two-tier lookup.\n    List 1 = [{{ $json.machine }}]\n    List 2 = [\"PF8/3\", \"PF8/5\", \"PF8/7\", \"PF8/8\", \"ASB250/3\", \"TE\"]\n    Lookup order:\n      1. First try to match the value against List 1. If it matches (or closely matches) an option in List 1, return that List 1 value.\n      2. If, and only if, no match is found in List 1, try to match against List 2. If it matches (or closely matches) an option in List 2, return that List 2 value.\n      3. If no match is found in either list, set null.\n    Note: List 1 takes priority. Only fall back to List 2 when List 1 yields no match.\n\n\nRules:\n1. Return ONLY valid JSON, no explanation or markdown\n2. Every row must have exactly 1 key \"A\" in \"response\"\n\nOutput format:\n{ \"output\": [ { \"row\": 1, \"response\": { \"A\": \"<value or null>\", \"B\": \"<value or null>\", \"C\": \"<value or null>\", \"D\": \"<value or null>\" } } ] }",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        4048,
+        -112
+      ],
+      "id": "d40b2edc-f5ec-4fbe-a3fc-46c9015be834",
+      "name": "ocr-agent-",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Google Drive Trigger').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1728,
+        -80
+      ],
+      "id": "27ebd5cd-287a-4645-84d4-0a6b39e479a2",
+      "name": "Download file",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        5088,
+        80
+      ],
+      "id": "db7fec36-5f60-48eb-8633-3da9055ac0a1",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// แก้ชื่อในวงเล็บให้ตรงกับชื่อ node จริงของคุณ\nconst h = $('find-name-produce').first().json;   // หัวเอกสาร: A=ผลิตภัณฑ์ B=เครื่อง C=วันที่\nconst lb = $('set-format-input-2').first().json;  // ชื่อหัวข้อตำหนิ A..I\nconst rows = $('set-format-input-3').all();           // 30 บรรทัดจาก Node3\nconst file_name = $('set-id').first().json.file_name;\nconst now_ = $now;\n\nreturn rows  // ตัดบรรทัดว่างทิ้ง (ลบบรรทัดนี้ถ้าอยากเก็บครบ 30)\n  .filter(it => it.json.B != null)\n  .map(it => {\n    const r = it.json;\n    return {\n      json: {\n        \"file-name\": file_name,\n        \"create-date\": now_,\n        \n        ชื่อสินค้า: h.T1_A,\n        วันที่ตรวจเช็ค: h.T1_B,\n        รหัสสินค้า: h.T1_C,\n        เครื่อง: h.T1_D,\n\n        ชื่อพนักงาน: r.N,\n        เลขที่ใบปะ: r.B,\n        ล็อตการผลิต: r.C,\n        เวลา: r.D,\n        ชื่อผู้ตรวจสอบ: r.A,\n\n        \"ชื่อปัญหาคุณภาพ-1\": lb.A,\n        \"Qty-1\": r.E ?? 0,\n\n        \"ชื่อปัญหาคุณภาพ-2\": lb.B,\n        \"Qty-2\": r.F ?? 0,\n\n        \"ชื่อปัญหาคุณภาพ-3\": lb.C,\n        \"Qty-3\": r.G ?? 0,\n\n        \"ชื่อปัญหาคุณภาพ-4\": lb.D,\n        \"Qty-4\": r.H ?? 0,\n\n        \"ชื่อปัญหาคุณภาพ-5\": lb.E,\n        \"Qty-5\": r.I ?? 0,\n\n        \"ชื่อปัญหาคุณภาพ-6\": lb.F,\n        \"Qty-6\": r.J ?? 0,\n\n        \"ชื่อปัญหาคุณภาพ-7\": lb.G,\n        \"Qty-7\": r.K ?? 0,\n\n        \"ชื่อปัญหาคุณภาพ-8\": lb.H,\n        \"Qty-8\": r.L ?? 0,\n\n        \"ชื่อปัญหาคุณภาพ-9\": lb.I,\n        \"Qty-9\": r.M ?? 0,\n      }\n    };\n  });"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        96
+      ],
+      "id": "0e9a27b9-35de-4391-b960-6a098cc8db68",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZxkO93QXB4hj_pXaTP28QbIikBh2qBuzhAX7Da5TBn8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "วันที่ตรวจเช็ค",
+              "displayName": "วันที่ตรวจเช็ค",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "เครื่อง",
+              "displayName": "เครื่อง",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อสินค้า",
+              "displayName": "ชื่อสินค้า",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "เลขที่ใบปะ",
+              "displayName": "เลขที่ใบปะ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ล็อตการผลิต",
+              "displayName": "ล็อตการผลิต",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "เวลา",
+              "displayName": "เวลา",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อพนักงาน",
+              "displayName": "ชื่อพนักงาน",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อผู้ตรวจสอบ",
+              "displayName": "ชื่อผู้ตรวจสอบ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty",
+              "displayName": "Qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-1",
+              "displayName": "ชื่อปัญหาคุณภาพ-1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-1",
+              "displayName": "Qty-1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-2",
+              "displayName": "ชื่อปัญหาคุณภาพ-2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-2",
+              "displayName": "Qty-2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-3",
+              "displayName": "ชื่อปัญหาคุณภาพ-3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-3",
+              "displayName": "Qty-3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-4",
+              "displayName": "ชื่อปัญหาคุณภาพ-4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-4",
+              "displayName": "Qty-4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-5",
+              "displayName": "ชื่อปัญหาคุณภาพ-5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-5",
+              "displayName": "Qty-5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-6",
+              "displayName": "ชื่อปัญหาคุณภาพ-6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-6",
+              "displayName": "Qty-6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-7",
+              "displayName": "ชื่อปัญหาคุณภาพ-7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-7",
+              "displayName": "Qty-7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-8",
+              "displayName": "ชื่อปัญหาคุณภาพ-8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-8",
+              "displayName": "Qty-8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-9",
+              "displayName": "ชื่อปัญหาคุณภาพ-9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-9",
+              "displayName": "Qty-9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-10",
+              "displayName": "ชื่อปัญหาคุณภาพ-10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-10",
+              "displayName": "Qty-10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-11",
+              "displayName": "ชื่อปัญหาคุณภาพ-11",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-11",
+              "displayName": "Qty-11",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-12",
+              "displayName": "ชื่อปัญหาคุณภาพ-12",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-12",
+              "displayName": "Qty-12",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-13",
+              "displayName": "ชื่อปัญหาคุณภาพ-13",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-13",
+              "displayName": "Qty-13",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-14",
+              "displayName": "ชื่อปัญหาคุณภาพ-14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-14",
+              "displayName": "Qty-14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-15",
+              "displayName": "ชื่อปัญหาคุณภาพ-15",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-15",
+              "displayName": "Qty-15",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-16",
+              "displayName": "ชื่อปัญหาคุณภาพ-16",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty-16",
+              "displayName": "Qty-16",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cal-Wt.",
+              "displayName": "Cal-Wt.",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Count",
+              "displayName": "Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Total Wt.",
+              "displayName": "Total Wt.",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Month",
+              "displayName": "Month",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5664,
+        96
+      ],
+      "id": "dde55bd7-9830-4608-b9ea-be7899230419",
+      "name": "Append row in sheet",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1_sZbfXs8LRWZCkGY8eaTsx1Yko8wrlXV",
+          "mode": "id"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -48
+      ],
+      "id": "3cfa6d7e-759f-4a72-98ce-b6fb46219207",
+      "name": "Google Drive Trigger",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "256f2b56-7704-4670-9d41-78d854c13fc6",
+              "leftValue": "={{ $('Google Drive Trigger').item.json.originalFilename.split('.')[0] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1328,
+        -48
+      ],
+      "id": "d2f96e61-0406-4be2-a4c1-58a8fa5e6521",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2cd6ca7a-da8f-49a5-9790-5617586ff105",
+              "leftValue": "={{ $json.fileExtension.toLowerCase() }}",
+              "rightValue": "png",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "b99332d4-e54e-409c-bafe-feace06ed3fc",
+              "leftValue": "={{ $json.fileExtension.toLowerCase() }}",
+              "rightValue": "jpg",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "7df98920-6fb7-48e5-95ca-7b8647ab7b52",
+              "leftValue": "={{ $json.fileExtension.toLowerCase() }}",
+              "rightValue": "jpeg",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "82eb1fbc-2f71-4664-87b2-6474c9e31a74",
+              "leftValue": "={{ $json.fileExtension.toLowerCase() }}",
+              "rightValue": "pdf",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1536,
+        -64
+      ],
+      "id": "5f6f1c38-132c-4d7c-9f63-e44f656e29cd",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1920,
+        -80
+      ],
+      "id": "3e1b4223-4fc3-4e13-b9c1-67b57eee0b3f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Google Drive Trigger').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1R1iC5k7wxIASUmvG8iynhSIZiHxc_JFB",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1920,
+        -288
+      ],
+      "id": "7adb151a-e716-426c-a52d-d98ac3123cd2",
+      "name": "move-sheet-to-processing",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"id\": \"{{ $json.id}}\",\n  \"file_name\": \"{{ $json.originalFilename }}\",\n  \"date\": \"{{\n  (() => {\n    const match = $json.originalFilename.match(/_(\\d{4})(\\d{2})(\\d{2})_/);\n    if (!match) return \"ไม่พบวันที่ในชื่อไฟล์\";\n    const [, year, month, day] = match;\n    return `${day}/${month}/${year}`;\n  })()\n}}\",\n  \"date_p\": \"{{\n  (() => {\n    const match = $json.originalFilename.match(/_(\\d{4})(\\d{2})(\\d{2})_/);\n    if (!match) return \"ไม่พบวันที่ในชื่อไฟล์\";\n    const [, year, month, day] = match;\n    return `${month}/${day}/${year}`;\n  })()\n}}\",\n  \"sheet_get_1\": \"Center\",\n  \"col_get_1\": \"ชื่อเอกสาร\",\n  \"value_get_1\": \"รายงานความเคลื่อนไหวของข้อมูลแพ็คสินค้า ประจำเดือน {{\n  (() => {\n    const thaiMonths = [\"มกราคม\",\"กุมภาพันธ์\",\"มีนาคม\",\"เมษายน\",\"พฤษภาคม\",\"มิถุนายน\",\"กรกฎาคม\",\"สิงหาคม\",\"กันยายน\",\"ตุลาคม\",\"พฤศจิกายน\",\"ธันวาคม\"];\n    const match = $json.originalFilename.match(/_(\\d{4})(\\d{2})(\\d{2})_/);\n    if (!match) return \"ไม่พบวันที่ในชื่อไฟล์\";\n    const [, year, month, day] = match;\n    return `${thaiMonths[month - 1]} ${+year + 543}`;\n  })()\n}}\"\n  \"sheet_read_1\": \"Sheet1\",\n  \"col_read_1\": \"วันที่\",\n  \"sheet_get_2\": \"Log Month\",\n  \"col_get_2\": \"ชื่อเอกสาร\",\n  \"value_get_2\": \"รายงาน ประจำเดือน {{\n  (() => {\n    const thaiMonths = [\"มกราคม\",\"กุมภาพันธ์\",\"มีนาคม\",\"เมษายน\",\"พฤษภาคม\",\"มิถุนายน\",\"กรกฎาคม\",\"สิงหาคม\",\"กันยายน\",\"ตุลาคม\",\"พฤศจิกายน\",\"ธันวาคม\"];\n    const match = $json.originalFilename.match(/_(\\d{4})(\\d{2})(\\d{2})_/);\n    if (!match) return \"ไม่พบวันที่ในชื่อไฟล์\";\n    const [, year, month, day] = match;\n    return `${thaiMonths[month - 1]} ${+year + 543}`;\n  })()\n}}\"\n  \"sheet_read_2\": \"Sheet1\",\n  \"col_read_2\": \"วันที่\",\n}\n",
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "data",
+        "options": {
+          "dotNotation": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2112,
+        -64
+      ],
+      "id": "ff3ade7e-edd7-4859-a661-91149738c711",
+      "name": "set-id"
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('set-id').last().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        7008,
+        96
+      ],
+      "id": "f6868017-7c7a-49d7-a182-4102108fae9b",
+      "name": "del-image-input1",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1p0iwTuPDYI1PyiqmFhCgjVJcQAcj83SEWyHewLlhdfs",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=DATA-{{ $json.result[0].json.response.D.replaceAll(\"/\", \"-\") }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "วันที่ผลิต",
+              "lookupValue": "={{ $json.result[0].json.response.B }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4432,
+        -112
+      ],
+      "id": "a27b767e-b397-47b0-926e-9b7769868d84",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\n\n// ดึงทุกแถวจาก sheet ไม่ใช่แค่แถวแรก\nconst sheetRows = [];\ntry {\n  const all = $('Get row(s) in sheet').all();\n  if (all && all.length > 0) {\n    all.forEach(item => {\n      if (item.json && !item.json.error) sheetRows.push(item.json);\n    });\n  }\n} catch (e) {}\n\n// รวม productFields จากทุกแถว\nconst productFields = [];\nsheetRows.forEach(sheetData => {\n  Object.entries(sheetData)\n    .filter(([key]) => key.startsWith('ชื่อสินค้า#'))\n    .forEach(([_, val]) => {\n      if (val) productFields.push(val);\n    });\n});\n\nfunction findMatch(keyword) {\n  if (!keyword || productFields.length === 0) return null;\n  const found = productFields.find(val =>\n    val.toString().includes(keyword.toString().trim())\n  );\n  return found || null;\n}\n\nreturn rows.map(item => {\n  const row = { ...item.json };\n  if (row.row === 1 && row.T1_A != null) {\n    row.T1_A = findMatch(row.T1_A) ?? row.T1_A;\n  }\n  return { json: row };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4816,
+        -112
+      ],
+      "id": "55677e6d-aa37-48f1-8df1-34dd9211ca81",
+      "name": "find-name-produce"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mergedRows = {};\nconst tables = $('cvt-text-to-json-1').all().map(item => item.json);\ntables.forEach((table, tableIndex) => {\n  if (table.result && Array.isArray(table.result)) {\n    table.result.forEach((rowItem) => {\n      const rowData = rowItem.json;\n      if (rowData && rowData.row) {\n        const rowNum = rowData.row;\n        if (!mergedRows[rowNum]) { mergedRows[rowNum] = { row: rowNum }; }\n        if (rowData.response) {\n          for (const [key, value] of Object.entries(rowData.response)) {\n            let cleanValue = value;\n            if ((typeof cleanValue === 'string' && cleanValue.trim().toLowerCase() === 'null') || (typeof cleanValue === 'string' && cleanValue.trim().toLowerCase() === '-') || (typeof cleanValue === 'string' && cleanValue.trim().toLowerCase() === '0')) {\n              cleanValue = null;\n            }\n            // if (rowNum===2 && key === \"B\") {\n            //   cleanValue = $input.last().json.name;\n            // }\n            mergedRows[rowNum][`T${tableIndex + 1}_${key}`] = cleanValue;\n          }\n        }\n      }\n    });\n  }\n});\nconst finalResult = Object.values(mergedRows).sort((a, b) => a.row - b.row);\nreturn finalResult.map(row => ({ json: row }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4624,
+        -112
+      ],
+      "id": "b71a9842-ffe6-4021-b8c5-e0a6866b5515",
+      "name": "set-format-input3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const N = 9; // จำนวนคู่ ชื่อปัญหาคุณภาพ-/Qty-\n\nreturn items.map(item => {\n  const row = item.json;\n\n  // 1) เก็บเฉพาะคู่ที่ Qty > 0 (เรียงตามลำดับเดิม)\n  const validPairs = [];\n  for (let i = 1; i <= N; i++) {\n    const qty = row[`Qty-${i}`];\n    if (qty !== null && qty !== undefined && qty !== 0) {\n      validPairs.push({\n        name: row[`ชื่อปัญหาคุณภาพ-${i}`],\n        qty: qty,\n      });\n    }\n  }\n\n  // 2) เคลียร์ทุกคู่เป็น null ก่อน\n  for (let i = 1; i <= N; i++) {\n    row[`ชื่อปัญหาคุณภาพ-${i}`] = null;\n    row[`Qty-${i}`] = null;\n  }\n\n  // 3) ขยับคู่ที่มีค่าขึ้นมาเรียงต่อกันจากคู่ที่ 1\n  if (validPairs.length > 0) {\n    validPairs.forEach((p, idx) => {\n      row[`ชื่อปัญหาคุณภาพ-${idx + 1}`] = p.name;\n      row[`Qty-${idx + 1}`] = p.qty;\n    });\n  } else {\n    // 4) ถ้าไม่มีปัญหาเลย\n    row['ชื่อปัญหาคุณภาพ-1'] = 'ไม่พบปัญหา';\n    // Qty-1 และคู่ที่เหลือเป็น null อยู่แล้วจากขั้นตอนที่ 2\n  }\n\n  return { json: row };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5472,
+        96
+      ],
+      "id": "916e45a9-8817-46ce-8d01-0a4565179da1",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        5856,
+        96
+      ],
+      "id": "edc53f85-ac7c-4d9e-a539-068cb3b164a2",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "keep": "lastItems"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        6240,
+        96
+      ],
+      "id": "f4beedb0-5f87-4ac4-bdbb-0dadff344d7d",
+      "name": "Limit3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== เตรียมรายการแถวที่จะอัปเดตสูตร =====\n\n// 1) row_number ของแถวสุดท้ายในชีต = แถวล่าสุดที่เพิ่ง insert เข้าไป\n//    (รับมาจาก Get row(s) in sheet2 -> Limit1 ซึ่งเหลือ item สุดท้ายไว้ตัวเดียว)\nconst lastRow = $input.first().json.row_number;\n\n// 2) จำนวนแถวที่ insert ไปในรอบนี้\n//    = จำนวน item ที่ออกจาก node \"Code in JavaScript5\" (ตัวที่ป้อนเข้า Append)\nconst insertedCount = $('Code in JavaScript1').all().length;\n\n// กันพลาด: ไม่มีอะไรให้อัปเดตก็จบเลย\nif (!lastRow || insertedCount === 0) {\n  return [];\n}\n\n// 3) ไล่จากแถวล่าสุด \"ลบลงทีละ 1\" จนครบจำนวนที่ insert ไปตอนแรก\nconst out = [];\nfor (let i = 0; i < insertedCount; i++) {\n  const row = lastRow - i;\n\n  out.push({\n    json: {\n      row_number: row, // ใช้เป็นคีย์ match แถวตอน update\n\n      // ===== สูตรชีตที่อ้างอิงเลขแถวจริงของแถวนั้น ๆ =====\n      // Count = รวม Qty-1..Qty-9 (คอลัมน์ K ถึง AA)\n      'Cal-Wt.': `=VLOOKUP(C${row},Sheet4!A:AA,27,false)`,\n      'Count': `=SUM(K${row}:AA${row})`,\n      'Total Wt.': `=AQ${row}*AP${row}`,\n      'Month': `=MONTH(A${row})`\n\n      // อยากอัปเดตสูตรคอลัมน์อื่นเพิ่ม ใส่ต่อตรงนี้ แล้วไป map เพิ่มใน node Update เช่น\n      // 'Total Wt.': `=AB${row}*AC${row}`,\n      // 'Month': `=TEXT(DATEVALUE(A${row}),\"mm-yyyy\")`,\n    },\n  });\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6432,
+        96
+      ],
+      "id": "54caab85-1283-4f71-8109-cee50a364f84",
+      "name": "Code in JavaScript7"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZxkO93QXB4hj_pXaTP28QbIikBh2qBuzhAX7Da5TBn8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "Cal-Wt.": "={{ $json['Cal-Wt.'] }}",
+            "Month": "={{ $json.Month }}",
+            "Total Wt.": "={{ $json['Total Wt.'] }}",
+            "Count": "={{ $json.Count }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "วันที่ตรวจเช็ค",
+              "displayName": "วันที่ตรวจเช็ค",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "เครื่อง",
+              "displayName": "เครื่อง",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อสินค้า",
+              "displayName": "ชื่อสินค้า",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "เลขที่ใบปะ",
+              "displayName": "เลขที่ใบปะ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ล็อตการผลิต",
+              "displayName": "ล็อตการผลิต",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "เวลา",
+              "displayName": "เวลา",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อพนักงาน",
+              "displayName": "ชื่อพนักงาน",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อผู้ตรวจสอบ",
+              "displayName": "ชื่อผู้ตรวจสอบ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty",
+              "displayName": "Qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-1",
+              "displayName": "ชื่อปัญหาคุณภาพ-1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-1",
+              "displayName": "Qty-1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-2",
+              "displayName": "ชื่อปัญหาคุณภาพ-2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-2",
+              "displayName": "Qty-2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-3",
+              "displayName": "ชื่อปัญหาคุณภาพ-3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-3",
+              "displayName": "Qty-3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-4",
+              "displayName": "ชื่อปัญหาคุณภาพ-4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-4",
+              "displayName": "Qty-4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-5",
+              "displayName": "ชื่อปัญหาคุณภาพ-5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-5",
+              "displayName": "Qty-5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-6",
+              "displayName": "ชื่อปัญหาคุณภาพ-6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-6",
+              "displayName": "Qty-6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-7",
+              "displayName": "ชื่อปัญหาคุณภาพ-7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-7",
+              "displayName": "Qty-7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-8",
+              "displayName": "ชื่อปัญหาคุณภาพ-8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-8",
+              "displayName": "Qty-8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-9",
+              "displayName": "ชื่อปัญหาคุณภาพ-9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-9",
+              "displayName": "Qty-9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-10",
+              "displayName": "ชื่อปัญหาคุณภาพ-10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-10",
+              "displayName": "Qty-10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-11",
+              "displayName": "ชื่อปัญหาคุณภาพ-11",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-11",
+              "displayName": "Qty-11",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-12",
+              "displayName": "ชื่อปัญหาคุณภาพ-12",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-12",
+              "displayName": "Qty-12",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-13",
+              "displayName": "ชื่อปัญหาคุณภาพ-13",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-13",
+              "displayName": "Qty-13",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-14",
+              "displayName": "ชื่อปัญหาคุณภาพ-14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-14",
+              "displayName": "Qty-14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-15",
+              "displayName": "ชื่อปัญหาคุณภาพ-15",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-15",
+              "displayName": "Qty-15",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ชื่อปัญหาคุณภาพ-16",
+              "displayName": "ชื่อปัญหาคุณภาพ-16",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Qty-16",
+              "displayName": "Qty-16",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Cal-Wt.",
+              "displayName": "Cal-Wt.",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Count",
+              "displayName": "Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Total Wt.",
+              "displayName": "Total Wt.",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Month",
+              "displayName": "Month",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        6624,
+        96
+      ],
+      "id": "aa725826-5b0b-41bb-ab1c-418594f2a5af",
+      "name": "Update row in sheet",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1ZxkO93QXB4hj_pXaTP28QbIikBh2qBuzhAX7Da5TBn8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        6048,
+        96
+      ],
+      "id": "5dcd554a-9b84-4951-b422-da25af719c4d",
+      "name": "Get row(s) in sheet3",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('set-id').last().json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Qfs4SI199YTqbseXt-_wxMFlnAd45ujW",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        6816,
+        96
+      ],
+      "id": "8f5988d1-aef1-4af7-977a-b8b85db5bbbe",
+      "name": "move-sheet-to-trash",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ระบุชื่อ Node ที่ต้องการคำนวณ\nconst geminiNodes = [\n  'ocr-agent-1',\n  'ocr-agent-2',\n  'ocr-agent-3',\n];\n\n// 1. ตารางราคา (USD ต่อ 1 ล้าน Tokens)\n// เงื่อนไข: เฉพาะ Text Output และ Prompt <= 200,000 Tokens \nconst pricing = {\n  \"gemini-3.5-flash\": { input: 1.5, output: 8.3 },\n  // ตระกูล Gemini 3.1 (รุ่นใหม่ล่าสุด)\n  \"gemini-3.1-pro\": { input: 2.00, output: 12.00 },\n  \"gemini-3.1-flash\": { input: 0.50, output: 3.00 },\n  \"gemini-3.1-flash-lite\": { input: 0.25, output: 1.50 },\n  \n  // ตระกูล Gemini 2.5\n  \"gemini-2.5-pro\": { input: 1.25, output: 10.00 },\n  \"gemini-2.5-flash\": { input: 0.30, output: 2.50 },\n  \"gemini-2.5-flash-lite\": { input: 0.10, output: 0.40 },\n\n  // Default สำรองไว้กรณีหาชื่อรุ่นไม่เจอ (อิงเรทกลางๆ ของ 2.5 Flash)\n  \"default\": { input: 0.30, output: 2.50 } \n};\n\nlet grandTotalUsd = 0;\nlet totalInputAll = 0;\nlet totalOutputAll = 0;\n\n// Object สำหรับเก็บสรุปยอดแยกตามโมเดล\nlet summaryByModel = {};\n\n// 2. วนลูปดึงข้อมูลจากแต่ละ Node\nfor (const nodeName of geminiNodes) {\n  try {\n    const nodeData = $node[nodeName].json;\n    const meta = nodeData.usageMetadata;\n    \n    // ดึงชื่อรุ่นจาก API ถ้าไม่มีให้ใช้ \"default\"\n    let rawModelVersion = nodeData.modelVersion || \"default\";\n    let matchedModel = \"default\";\n    let rate = pricing[\"default\"];\n\n    // ใช้การเช็กคำ (includes) เพื่อรองรับชื่อ API ที่มี suffix ต่อท้าย เช่น \"gemini-2.5-pro-preview\"\n    for (const key in pricing) {\n      if (rawModelVersion.includes(key)) {\n        matchedModel = key;\n        rate = pricing[key];\n        break; // เจอชื่อที่ตรงกันแล้วหยุดหา\n      }\n    }\n\n    if (meta) {\n      const inputTokens = meta.promptTokenCount || 0;\n      // รวม Candidates (คำตอบปกติ) และ Thoughts (การคิดวิเคราะห์) เข้าเป็น Output ก้อนเดียว\n      const outputTokens = (meta.candidatesTokenCount || 0) + (meta.thoughtsTokenCount || 0);\n      \n      // 3. คำนวณราคา Node ปัจจุบัน\n      const nodeCostUsd = (inputTokens * (rate.input / 1000000)) + (outputTokens * (rate.output / 1000000));\n      \n      grandTotalUsd += nodeCostUsd;\n      totalInputAll += inputTokens;\n      totalOutputAll += outputTokens;\n\n      // บันทึกสถิติสะสมแยกตามรุ่นโมเดล\n      if (!summaryByModel[matchedModel]) {\n        summaryByModel[matchedModel] = {\n          total_tokens: 0,\n          cost_usd: 0\n        };\n      }\n      summaryByModel[matchedModel].total_tokens += (inputTokens + outputTokens);\n      summaryByModel[matchedModel].cost_usd += nodeCostUsd;\n    }\n  } catch (e) {\n    // ข้าม Node ที่รันไม่ผ่านหรือไม่พบ\n  }\n}\n\n// 4. สรุปเป็นเงินบาท (ใช้เรท 33 บาท/ดอลลาร์)\nconst grandTotalThb = grandTotalUsd * 33+1;\n\n// จัดรูปแบบทศนิยมให้สวยงามสำหรับ Output\nfor (const model in summaryByModel) {\n  const modelCostUsd = summaryByModel[model].cost_usd;\n  summaryByModel[model].cost_thb = (modelCostUsd * 33).toFixed(4) + \" บาท\";\n  summaryByModel[model].cost_usd = modelCostUsd.toFixed(6);\n}\n\n// 5. ส่งค่าออกไปแสดงผล\nreturn {\n  summary: {\n    total_tokens_used: totalInputAll + totalOutputAll,\n    tokens_breakdown: {\n      input: totalInputAll,\n      output_including_thoughts: totalOutputAll\n    },\n    cost_by_model: summaryByModel,\n    grand_total: {\n      usd: grandTotalUsd.toFixed(6),\n      thb: grandTotalThb.toFixed(4) + \" บาท\"\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6432,
+        -96
+      ],
+      "id": "4839f4a1-43b4-4889-b7e5-8f3a877462cb",
+      "name": "cal-cost1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1leh-GfkjJvKnLI7O3tsim13bREPQVH2nG0AbzV_a3Qk",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "model-cost",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1leh-GfkjJvKnLI7O3tsim13bREPQVH2nG0AbzV_a3Qk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Total Tokens": "={{ $json.summary.total_tokens_used }}",
+            "Total Cost (THB)": "={{ $json.summary.grand_total.thb }}",
+            "Model Breakdown": "={{ $json.summary.tokens_breakdown }}",
+            "Output Tokens": "={{ $json.summary.tokens_breakdown.output_including_thoughts }}",
+            "Prompt Tokens": "={{ $json.summary.tokens_breakdown.input }}",
+            "Raw JSON": "={{ $json.summary }}",
+            "docs": "018"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Tokens",
+              "displayName": "Total Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Cost (THB)",
+              "displayName": "Total Cost (THB)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Model Breakdown",
+              "displayName": "Model Breakdown",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Prompt Tokens",
+              "displayName": "Prompt Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Output Tokens",
+              "displayName": "Output Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Raw JSON",
+              "displayName": "Raw JSON",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "docs",
+              "displayName": "docs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        6624,
+        -96
+      ],
+      "id": "78f3e82a-8497-4d49-8143-6552e577c78b",
+      "name": "add-cost-to-sheet1",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "30c020d7-f1b3-4f13-bbba-8a099a58274d",
+      "name": "Limit (1 item)",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Combine Machines: รวมชื่อเครื่องจาก Sheet 1 + Sheet 2 แล้วลบค่าซ้ำ ===\n\nconst sheet1 = $('Read Sheet 2').all();   // มีคอลัมน์ \"เครื่อง\"\nconst sheet2 = $('Read Sheet 1').all();   // มีคอลัมน์ \"เครื่องจักร\"\n\n// ทำให้รูปแบบรหัสเครื่องเหมือนกัน เช่น PF8-8 -> PF8/8\n// ถ้าไม่ต้องการให้แปลง ให้ลบ .replace(/-/g, '/') ออก\nconst normalize = (v) =>\n  (v === undefined || v === null) ? '' : String(v).trim().replace(/-/g, '/');\n\nconst set = new Set();\nfor (const it of sheet1) { const c = normalize(it.json['เครื่อง']);     if (c) set.add(c); }\nfor (const it of sheet2) { const c = normalize(it.json['เครื่องจักร']); if (c) set.add(c); }\n\nconst machine = [...set];   // เช่น [\"PF8/7\", \"PF8/8\"]\n\nreturn [{ json: { machine } }];\n"
+      },
+      "id": "f2e5458d-4c92-49e5-b3e1-4af103329b7b",
+      "name": "Combine Machines",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3264,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const incomingBinary = $('set-id').item.binary;\nconst machine = $('Combine Machines').first().json.machine || [];\n\nconst normalize = (v) =>\n  (v === undefined || v === null) ? '' : String(v).trim().replace(/-/g, '/');\n\nconst machineSet = new Set(machine.map(normalize));\nconst sheet3 = $input.all();   // ทุกแถวจาก Read Sheet 3\n\nconst MACHINE_COL = 'Machine';\nconst NAME_COL    = 'Full_name';\n\nconst SEP = ' | ';\n\n// ตัดให้เหลือ 4 ช่อง: ชื่อ | ประเภท | น้ำหนัก | สี   (ตัดช่องสุดท้าย เช่น ขึ้นเดี่ยว/ขึ้นคู่ ทิ้ง)\nconst toParts = (raw) => String(raw).split('|').map((p) => p.trim()).slice(0, 4);\n\n// จับกลุ่มด้วย \"ชื่อหน้า\" = 3 ช่องแรก (ไม่รวมสี)\nconst chosen = new Map(); // front -> { trimmed, isSai }\n\nfor (const it of sheet3) {\n  if (!machineSet.has(normalize(it.json[MACHINE_COL]))) continue;\n\n  const raw = it.json[NAME_COL];\n  if (raw === undefined || raw === null || String(raw).trim() === '') continue;\n\n  const parts   = toParts(raw);\n  const trimmed = parts.join(SEP);\n  const front   = parts.slice(0, 3).join(SEP);\n  const color   = parts[3] || '';\n  const isSai   = color.endsWith('ใส');   // สีลงท้ายด้วย \"ใส\"\n\n  if (!chosen.has(front)) {\n    chosen.set(front, { trimmed, isSai });\n  } else if (!chosen.get(front).isSai && isSai) {\n    // ตัวเดิมไม่ใช่ \"ใส\" แต่ตัวใหม่ลงท้าย \"ใส\" → เปลี่ยนมาใช้ตัวใหม่\n    chosen.set(front, { trimmed, isSai });\n  }\n  // นอกนั้นเก็บตัวแรกไว้ (กรณีไม่มี \"ใส\" เลย ก็ได้ตัวแรกมาแค่ตัวเดียว)\n}\n\nconst produce_name = [...chosen.values()].map((v) => v.trimmed);\n\nreturn [{ json: { machine, produce_name }, binary: incomingBinary }];"
+      },
+      "id": "9b8e003a-a943-4325-96b6-7af22d68269c",
+      "name": "Build produce_name",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3856,
+        -176
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1k76vvuUCBp-zD1066VjXYmuUijEVKyMPUFvY-JqIP0s",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('set-id').item.json.sheet_get_1 }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "={{ $('set-id').item.json.col_get_1 }}",
+              "lookupValue": "={{ $('set-id').item.json.value_get_1 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2304,
+        -64
+      ],
+      "id": "3a0adbc0-5d41-4fee-a4bd-076554afa5b7",
+      "name": "Get row(s) in sheet6",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1uAEiphonPW8O_BBXmNhUV9wHqK91CuczFLPll3o4AcU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('set-id').item.json.sheet_get_2 }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "={{ $('set-id').item.json.col_get_2 }}",
+              "lookupValue": "={{ $('set-id').item.json.value_get_2 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2880,
+        -64
+      ],
+      "id": "a27e5d5e-208c-4a3f-bf4b-f75d29e337cb",
+      "name": "Get row(s) in sheet8",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Ln4pngPMrcaxjpvetB5LPNEafll1b6nywpsJmlk38po",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 342196036,
+          "mode": "list",
+          "cachedResultName": "Product data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ln4pngPMrcaxjpvetB5LPNEafll1b6nywpsJmlk38po/edit#gid=342196036"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3664,
+        -176
+      ],
+      "id": "41561e93-0ca0-45c7-ab3e-a3780e0ad374",
+      "name": "Read Sheet 3",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Get row(s) in sheet6').item.json['ไอดีเอกสาร'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('set-id').item.json.sheet_read_1 }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "={{ $('set-id').item.json.col_read_1 }}",
+              "lookupValue": "={{ $('set-id').item.json.date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2496,
+        -64
+      ],
+      "id": "742d32df-5257-4925-99e5-693deeb675ad",
+      "name": "Read Sheet 1",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Get row(s) in sheet8').item.json.รหัสเอกสาร }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('set-id').item.json.sheet_read_2 }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "={{ $('set-id').item.json.col_read_2 }}",
+              "lookupValue": "={{ $('set-id').item.json.date }}"
+            }
+          ]
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange",
+              "headerRow": 2,
+              "firstDataRow": 3
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3072,
+        -64
+      ],
+      "id": "bec07ade-114b-4672-82fb-aa575e25cb71",
+      "name": "Read Sheet 2",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "5bf4913f-a079-4f7a-b716-0741e02b9a01",
+              "leftValue": "={{ $json.machine.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3456,
+        -64
+      ],
+      "id": "8d937450-e799-4d2f-aa0c-f6fd489885cf",
+      "name": "มีข้อมูล Sheet 1/2 ไหม?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const incomingBinary = $('set-id').item.binary;\n\n\n\nconst result = [];\nresult.push({binary: incomingBinary });\nreturn result;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3856,
+        -48
+      ],
+      "id": "00f288ab-61e3-4d41-ac68-95bed3ae93b3",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer oi8iWesT6LfWpBeUiiGcl2MDqRoui2c1oWpH9NnOOcDvjqdeYV2hsvyLHOHmUQyFYDr35gOI93l7QKa6UMoKLbstEyfJHHoRJyi0LN71gl5bkM+I1R06GWOKbpjbYhflH6VZImk/9yh/S7Zl8wvG1wdB04t89/1O/w1cDnyilFU="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"to\": \"C306ebbefc8c3bcc6fc91816da248a3e9\", \"messages\": [ { \"type\": \"text\", \"text\": \"✅ FM-DQM-018 ทำงานเสร็จสมบูรณ์\\n\\nสถานะ: SUCCESS\\nExecution ID: \" + $execution.id + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') } ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2112,
+        -288
+      ],
+      "id": "b941fb79-aa44-4f33-955f-3d824ab4aca8",
+      "name": "LINE - Workflow Success",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        -848
+      ],
+      "id": "c0cc0276-9066-4340-9d9a-f8b752e6687d",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ntfy.sh/tpi-err-n8n-5697b86b-c202-46c6-aba0-132a5d5f1641",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "n8n Workflow Error"
+            },
+            {
+              "name": "Priority",
+              "value": "high"
+            },
+            {
+              "name": "Tags",
+              "value": "warning"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ \"❌ n8n Workflow Error\\n\\nWorkflow: \" + ($json.workflow?.name ?? \"FM-DQM-002\") + \"\\nNode: \" + ($json.execution?.lastNodeExecuted ?? \"Unknown\") + \"\\nError: \" + ($json.execution?.error?.message ?? $json.error?.message ?? \"Unknown error\") + \"\\nExecution ID: \" + ($json.execution?.id ?? \"-\") + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1328,
+        -1008
+      ],
+      "id": "088e0889-2789-4b68-922a-88f542994d66",
+      "name": "err-ntfy",
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer oi8iWesT6LfWpBeUiiGcl2MDqRoui2c1oWpH9NnOOcDvjqdeYV2hsvyLHOHmUQyFYDr35gOI93l7QKa6UMoKLbstEyfJHHoRJyi0LN71gl5bkM+I1R06GWOKbpjbYhflH6VZImk/9yh/S7Zl8wvG1wdB04t89/1O/w1cDnyilFU="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"to\": \"C306ebbefc8c3bcc6fc91816da248a3e9\", \"messages\": [ { \"type\": \"text\", \"text\": \"❌ n8n Workflow Error\\n\\nWorkflow: \" + ($json.workflow?.name ?? \"FM-DQM-002\") + \"\\nNode: \" + ($json.execution?.lastNodeExecuted ?? \"Unknown\") + \"\\nError: \" + ($json.execution?.error?.message ?? $json.error?.message ?? \"Unknown error\") + \"\\nExecution ID: \" + ($json.execution?.id ?? \"-\") + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') } ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1328,
+        -848
+      ],
+      "id": "011ed048-5800-426c-8c28-53369536cd48",
+      "name": "err-line",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {
+    "Google Drive Trigger": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "fileExtension": "pdf",
+          "copyRequiresWriterPermission": false,
+          "md5Checksum": "959244f82fc8c657c437422fe1300e21",
+          "writersCanShare": true,
+          "viewedByMe": true,
+          "mimeType": "application/pdf",
+          "parents": [
+            "1_sZbfXs8LRWZCkGY8eaTsx1Yko8wrlXV"
+          ],
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBNjlgmMnlxxT7z45v4gWSrF3cFUaZQsjTrYNqoxumz7YO31KHppC17ESvfZ5XIxlr-h93KCZesTpMTcVHnVrFK2de0uRDXK3grfZNv5RsOPy_5E3Q=s220",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+          "shared": false,
+          "lastModifyingUser": {
+            "displayName": "Technical Sales Support and Service Team",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "05046041181200307860",
+            "emailAddress": "dts@thaipet.co.th",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Technical Sales Support and Service Team",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "05046041181200307860",
+              "emailAddress": "dts@thaipet.co.th",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+            }
+          ],
+          "headRevisionId": "0B3xfstlQMekiaWdkdHVlVXhlSGE0azhxNDZMSVBEY2JPYXVvPQ",
+          "webViewLink": "https://drive.google.com/file/d/1Mxtx4qkNbZOdjuzqrKWF5exKWXHKw6Ls/view?usp=drivesdk",
+          "webContentLink": "https://drive.google.com/uc?id=1Mxtx4qkNbZOdjuzqrKWF5exKWXHKw6Ls&export=download",
+          "size": "1174967",
+          "viewersCanCopyContent": true,
+          "permissions": [
+            {
+              "id": "05046041181200307860",
+              "displayName": "Technical Sales Support and Service Team",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64",
+              "emailAddress": "dts@thaipet.co.th",
+              "role": "owner",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "hasThumbnail": true,
+          "spaces": [
+            "drive"
+          ],
+          "id": "1Mxtx4qkNbZOdjuzqrKWF5exKWXHKw6Ls",
+          "name": "Copy of BP-50M31_20260606_162236-7-หมุน.pdf",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "createdTime": "2026-06-17T06:29:40.243Z",
+          "modifiedTime": "2026-06-17T06:29:40.243Z",
+          "modifiedByMeTime": "2026-06-17T06:29:40.243Z",
+          "viewedByMeTime": "2026-06-17T06:29:40.243Z",
+          "quotaBytesUsed": "1174967",
+          "version": "3",
+          "originalFilename": "Copy of BP-50M31_20260606_162236-7-หมุน.pdf",
+          "ownedByMe": true,
+          "fullFileExtension": "pdf",
+          "isAppAuthorized": false,
+          "capabilities": {
+            "canChangeViewersCanCopyContent": true,
+            "canEdit": true,
+            "canCopy": true,
+            "canComment": true,
+            "canAddChildren": false,
+            "canDelete": true,
+            "canDownload": true,
+            "canListChildren": false,
+            "canRemoveChildren": false,
+            "canRename": true,
+            "canTrash": true,
+            "canReadRevisions": true,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canMoveItemIntoTeamDrive": true,
+            "canUntrash": true,
+            "canModifyContent": true,
+            "canMoveItemOutOfDrive": true,
+            "canAddMyDriveParent": false,
+            "canRemoveMyDriveParent": true,
+            "canMoveItemWithinDrive": true,
+            "canShare": true,
+            "canMoveChildrenWithinDrive": false,
+            "canModifyContentRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canAcceptOwnership": false,
+            "canReadLabels": false,
+            "canModifyLabels": false,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canRemoveContentRestriction": false,
+            "canDisableInheritedPermissions": false,
+            "canEnableInheritedPermissions": true,
+            "canChangeItemDownloadRestriction": true,
+            "canStartApproval": true
+          },
+          "thumbnailVersion": "1",
+          "modifiedByMe": true,
+          "permissionIds": [
+            "05046041181200307860"
+          ],
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "sha1Checksum": "137f9261e4a066d8f3a33ec4448021a5488f107f",
+          "sha256Checksum": "8182477f15ca084bf299dc0bedc3c088c1ecc96649b3f5b83ed13f8e5fbab8d9",
+          "inheritedPermissionsDisabled": false,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "clientEncryptionDetails": {
+            "decryptionMetadata": {
+              "wrappedKey": "",
+              "kaclsId": "0",
+              "aes256GcmChunkSize": "unset",
+              "keyFormat": "unsetKeyFormat",
+              "encryptionResourceKeyHash": ""
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "kind": "drive#file",
+          "fileExtension": "jpg",
+          "copyRequiresWriterPermission": false,
+          "md5Checksum": "17c7311a137ae6bc9091cd637f9f29cd",
+          "writersCanShare": true,
+          "viewedByMe": true,
+          "mimeType": "image/jpeg",
+          "parents": [
+            "1_sZbfXs8LRWZCkGY8eaTsx1Yko8wrlXV"
+          ],
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBPxWKAIwEINTVfE22GoMjoadInw3PiuptRuj4_UVVroj2NjLOJpiXgAHQoJe1n192Huv3rWpIsZn2JHu10lsJthdV9FQ4AyVMfcZGWmlQjpfXuUvQ=s220",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/jpeg",
+          "shared": false,
+          "lastModifyingUser": {
+            "displayName": "Technical Sales Support and Service Team",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "05046041181200307860",
+            "emailAddress": "dts@thaipet.co.th",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Technical Sales Support and Service Team",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "05046041181200307860",
+              "emailAddress": "dts@thaipet.co.th",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+            }
+          ],
+          "headRevisionId": "0B3xfstlQMekieUQ4NHI2MFNlYVA3eitxWFBpQ0Zqc0hOV3ZNPQ",
+          "webViewLink": "https://drive.google.com/file/d/1opqQ7CVlQxBFSxEkZgjBU-tAFaOBb2h2/view?usp=drivesdk",
+          "webContentLink": "https://drive.google.com/uc?id=1opqQ7CVlQxBFSxEkZgjBU-tAFaOBb2h2&export=download",
+          "size": "1001869",
+          "viewersCanCopyContent": true,
+          "permissions": [
+            {
+              "id": "05046041181200307860",
+              "displayName": "Technical Sales Support and Service Team",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64",
+              "emailAddress": "dts@thaipet.co.th",
+              "role": "owner",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "hasThumbnail": true,
+          "spaces": [
+            "drive"
+          ],
+          "id": "1opqQ7CVlQxBFSxEkZgjBU-tAFaOBb2h2",
+          "name": "Copy of BP-50M31_20260520_162236-7-หมุน.jpg",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "createdTime": "2026-06-17T06:29:40.243Z",
+          "modifiedTime": "2026-06-17T06:29:40.243Z",
+          "modifiedByMeTime": "2026-06-17T06:29:40.243Z",
+          "viewedByMeTime": "2026-06-17T06:29:40.243Z",
+          "quotaBytesUsed": "1001869",
+          "version": "2",
+          "originalFilename": "Copy of BP-50M31_20260520_162236-7-หมุน.jpg",
+          "ownedByMe": true,
+          "fullFileExtension": "jpg",
+          "isAppAuthorized": false,
+          "capabilities": {
+            "canChangeViewersCanCopyContent": true,
+            "canEdit": true,
+            "canCopy": true,
+            "canComment": true,
+            "canAddChildren": false,
+            "canDelete": true,
+            "canDownload": true,
+            "canListChildren": false,
+            "canRemoveChildren": false,
+            "canRename": true,
+            "canTrash": true,
+            "canReadRevisions": true,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canMoveItemIntoTeamDrive": true,
+            "canUntrash": true,
+            "canModifyContent": true,
+            "canMoveItemOutOfDrive": true,
+            "canAddMyDriveParent": false,
+            "canRemoveMyDriveParent": true,
+            "canMoveItemWithinDrive": true,
+            "canShare": true,
+            "canMoveChildrenWithinDrive": false,
+            "canModifyContentRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canAcceptOwnership": false,
+            "canReadLabels": false,
+            "canModifyLabels": false,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canRemoveContentRestriction": false,
+            "canDisableInheritedPermissions": false,
+            "canEnableInheritedPermissions": true,
+            "canChangeItemDownloadRestriction": true,
+            "canStartApproval": true
+          },
+          "thumbnailVersion": "1",
+          "modifiedByMe": true,
+          "permissionIds": [
+            "05046041181200307860"
+          ],
+          "imageMediaMetadata": {
+            "colorSpace": "sRGB",
+            "width": 2244,
+            "height": 2904,
+            "rotation": 0
+          },
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "sha1Checksum": "e07d3b2e09965314af2e05c04b4b6d60e7bf2783",
+          "sha256Checksum": "81460b36c8248347c52184944133cff2ac99e31d19ce63be7e00ac636c823db5",
+          "inheritedPermissionsDisabled": false,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "clientEncryptionDetails": {
+            "decryptionMetadata": {
+              "wrappedKey": "",
+              "kaclsId": "0",
+              "aes256GcmChunkSize": "unset",
+              "keyFormat": "unsetKeyFormat",
+              "encryptionResourceKeyHash": ""
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      }
+    ]
+  },
+  "connections": {
+    "cvt-text-to-json-1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocr-agent-2": {
+      "main": [
+        [
+          {
+            "node": "cvt-text-to-json-2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cvt-text-to-json-2": {
+      "main": [
+        [
+          {
+            "node": "set-format-input-2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocr-agent-3": {
+      "main": [
+        [
+          {
+            "node": "cvt-text-to-json-3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cvt-text-to-json-3": {
+      "main": [
+        [
+          {
+            "node": "set-format-input-3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocr-agent-": {
+      "main": [
+        [
+          {
+            "node": "cvt-text-to-json-1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "move-sheet-to-processing",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set-format-input-3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "set-format-input-2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "LINE - Workflow Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "set-id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set-id": {
+      "main": [
+        [
+          {
+            "node": "ocr-agent-2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ocr-agent-3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get row(s) in sheet6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del-image-input1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "set-format-input3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set-format-input3": {
+      "main": [
+        [
+          {
+            "node": "find-name-produce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find-name-produce": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript7",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "cal-cost1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript7": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "move-sheet-to-trash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet3": {
+      "main": [
+        [
+          {
+            "node": "Limit3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "move-sheet-to-trash": {
+      "main": [
+        [
+          {
+            "node": "del-image-input1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "move-sheet-to-processing": {
+      "main": [
+        []
+      ]
+    },
+    "cal-cost1": {
+      "main": [
+        [
+          {
+            "node": "add-cost-to-sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit (1 item)": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Machines": {
+      "main": [
+        [
+          {
+            "node": "มีข้อมูล Sheet 1/2 ไหม?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet6": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet8": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet 3": {
+      "main": [
+        [
+          {
+            "node": "Build produce_name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet 1": {
+      "main": [
+        [
+          {
+            "node": "Limit (1 item)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet 2": {
+      "main": [
+        [
+          {
+            "node": "Combine Machines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "มีข้อมูล Sheet 1/2 ไหม?": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet 3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build produce_name": {
+      "main": [
+        [
+          {
+            "node": "ocr-agent-",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "ocr-agent-",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "err-line",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "err-ntfy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a6543c82-273b-47c8-809f-a2e00313958d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b89bacf03b33df343a7dd9f17cf1721598896265238cfb8ad22fd7cae20c33a"
+  },
+  "id": "re8r37JaI5pUYKL6",
+  "tags": []
+}

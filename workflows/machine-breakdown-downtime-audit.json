@@ -1,0 +1,2552 @@
+{
+  "name": "tpi-ocr-docs-015",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1ZV4RnW1enkfNUOvloThPtjoVyiyI41DK",
+          "mode": "list",
+          "cachedResultName": "1-Input",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1ZV4RnW1enkfNUOvloThPtjoVyiyI41DK"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        736,
+        4768
+      ],
+      "id": "63c46ddf-d13f-428b-bc28-722201a1caf0",
+      "name": "Drive: ไฟล์ใหม่",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.mimeType }}",
+              "rightValue": "image/",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        4768
+      ],
+      "id": "f3f564ab-da69-4a8b-aa72-dcbeeaf4c661",
+      "name": "เป็นรูปภาพ?"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1360,
+        4752
+      ],
+      "id": "e0c94c54-d4de-4c56-ae9e-4b7b5e970afc",
+      "name": "ดาวน์โหลดรูป",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.5-flash"
+        },
+        "text": "You are an OCR extraction agent for a handwritten Thai factory \"Machine Breakdown Report\" (form FM-DBM-015). Read the image carefully and output ONLY valid JSON (no markdown, no commentary).\n\n=== STEP 1: CONSTRAINED VOCABULARIES (map handwriting to the closest allowed entry) ===\n\n[A] MACHINE — the value after the label \"ประจำเครื่อง\". \"machine_raw\" MUST be EXACTLY one of these 9 strings (pick the single closest; handwriting is messy):\nPF8/3 | PF8/5 | PF8/6 | PF8/7 | PF8/8 | ASB250/3 | TE | KM175 | NB40\nHints: \"8/3\",\"8/5\",\"8/6\",\"8/7\",\"8/8\" → \"PF8/3\"..\"PF8/8\" ; \"250/3\" → \"ASB250/3\" ; \"True Easy\"/\"Ture Easy\"/\"T.E.\" (as a machine, in header) → \"TE\" ; \"km175\" → \"KM175\" ; \"NB 40\" → \"NB40\". Distinguish 5 vs 6 carefully. Output the exact string from the list.\n\n[B] PRODUCT — the value after \"ผลิตขวด\". \"product\" MUST be the closest entry from this PRODUCT list (output the exact string). If truly nothing is close, output the raw text you read:\nขวดอนันดา 350 | บจก.อัมพร มาร์เก็ทติ้ง (380 CC.) | ขวดเคลลี่ 450 | ขวดเอคิววายซอส (500 CC.) | ขวดไบเล่ 250 | ขวดไบเล่ 370 | ขวดบางกอก 320 | ขวดบัวหลวง 400 | ขวดเบลมองด์ 500 | ขวดโบว์ลิ่งสยาม 500 | ขวดโบว์ลิ่ง 330 | ขวดโบว์ลิ่ง 500 | ขวดเหลี่ยมเพชรล่าง 330 (CL Series) | ขวดเหลี่ยมเพชรล่าง 400 (CL Series) | ขวดเหลี่ยมเพชรล่าง 550 (CL Series) | ขวดโคโคโซ่ 320 | ขวดโชคมหาชัย 350 | ขวด CPC 1 ลิตร | ขวดเกลียว 1 ลิตร | ขวดคริสตัล 1500 | ขวดคริสตัล 1500 (ทรงกลม) | ขวดคริสตัล 600 | ขวดเซ็นทรัล 330 | ขวดเซ็นทรัล 330 V2 | ขวดเซ็นทรัล 350 | ขวดดีโด้ 500 เหลี่ยม | ขวดดิสมิธฟู้ด 435 | ขวดดิสมิธฟู้ด 740 | ขวดอีโม่ 330 | ขวดเหลี่ยมเพชรบน 500 | ขวดฟิวเจอร์ 500 | ขวดโฮมช้อยส์ 1500 (HO Series) | ขวดโฮมชอยส์ 600 (HO Series) | ขวดไอดีล 180 | ขวดไอดีล 180 มุก | ขวดไอดีล 250 | ขวดไอดีล 350 | ขวดไคโอ 350 | ขวดไอดีล 500 กลม | ขวดไอดีล 500 | ขวดไอดีล 600 | ขวดไอดีล 450 | ขวดมะพร้าว 1000 | บจก.กรุงสยามเครื่องดื่ม (450 เปล่า) | ขวดเลอคูล 1500 (LC Series) | ขวดเลอคูล 330 (LC Series) | ขวดเลอคูล 550 (LC Series) | ขวดสีเขียวสะท้อนแสง (เลอคูล550) | ขวดหยก 1000 | ขวดหยก 250 | ขวดทับทิม 1 ลิตร | Molecule Beverages 330ML | ขวดมายช้อยส์ 500 | ขวดมองต์เฟลอ 1500 | ขวดมองต์เฟลอ 500 | ขวดมิเนเร่ 1500 (MI Series) | ขวดมิเนเร่ 500 (MI Series) | ขวดมรกต 1000 | ขวดนูบูน 1000 | ขวดนูบูน 250 | ขวดนูบูน 300 | ขวดนูบูน 500 | ขวดเนปจูน 600 | ขวดน้ำทิพย์ 1500 | ขวดน้ำทิพย์ 600 | ขวดออนเดอะเทเบิ้ล 330 (OB Series) V1 | ขวดออนเดอะเทเบิ้ล 330 (OB Series) (ตัวสั้น) V2 | ขวดออนเดอะเทเบิ้ล 500 (OB Series) V1 | ขวดออนเดอะเทเบิ้ล 500 (OB Series) V2 | ขวดโอลีน 1 ลิตร | ขวดโฮมเฟรชมาร์ท 1500 (OX Series) | ขวดโฮมเฟรชมาร์ท 330 (OX Series) | ขวดโฮมเฟรชมาร์ท 600 (OX Series) | ขวดโฮมเฟรชมาร์ท 1000 | ขวดโฮมเฟรชมาร์ท 330 (OX Series) (เทามุก 2.0) | ขวดโฮมเฟรชมาร์ท 330 (OX Series) (เทามุก 2.5) | ขวดโฮมเฟรชมาร์ท 1500 (Online) | หลอดพรีฟอร์ม 19 กรัม | หลอดพรีฟอร์ม 21 กรัม | หลอดพรีฟอร์ม 36 กรัม | หลอดพรีฟอร์ม 17 กรัม | หลอดพรีฟอร์ม 17 กรัม (Hot Fill) | หลอดพรีฟอร์ม 12 กรัม | หลอดพรีฟอร์ม 14 กรัม | หลอดพรีฟอร์ม 16 กรัม | หลอดพรีฟอร์ม 22.7 กรัม | หลอดพรีฟอร์ม 26 กรัม | หจก.พี เอฟ ฟู้ด (380 เปล่า) | หจก.พี เอฟ ฟู้ด (380 เปล่า) V2 | ขวดพลอย 1000 (PL Series) | ขวดพลอย 250 (PL Series) | ขวดแพนสยาม 1000 | ขวดแพนสยาม 500 | ขวดเเสงนลินฟู้ดส์ 380 | ขวดสิงห์ 1000 | ขวดเซ็ปเป้ 320 | ขวดเซ็ปเป้ 400 | ขวดศรทอง 1000 | บจก.ไทยแอทลาส (320 เปล่า) | ขวดไทยอกริฟู้ดส์ 200 | ขวดไทยอกริฟู้ดส์ 430 | ขวดไทซัน 1000 (TI SERIES) | ขวดไทซัน 1500 (TI SERIES) | ขวดไทซัน 500 (TI SERIES) | ขวดไทซัน 500 (TI SERIES) V2 | ขวดธาราทิพย์ 450 | ขวด 1000 กรีนเมท | ขวด 250 สมูทตี้ | ขวด 290 สมูทตี้ | ขวด 400 กรีนเมท | ขวด 400 BSC | ขวดเคลลี่ 400 | ขวดทานตะวัน 730 | ขวด Vince 500 | ขวด Vince 500 (Online) | ขวด Vince 1000 | ขวดองุ่น 1 ลิตร | ขวดองุ่น 2 ลิตร (VT Series) V1 | ขวดองุ่น 2 ลิตร (VT Series) V2 | บจก.เวิล์ดฟูดส์ (270 CC.) | ขวดวารินิตี้ 320 | ขวดเอคิววายซอส (นาคาคุระ 1000 CC.) | ขวดเลอคูล 330 (LC Series) (เทามุก 2.0) | ขวดเลอคูล 330 (LC Series) (เทามุก 2.5) | ขวดเลอคูล 1500 (Online) | ขวดโคโคนัท 235 | ขวดแซ่บไมค์ 350 | ขวดเลอแม็ก 300 | ขวดโซ 400 | ขวดคณา 500 | ขวดคณา 500 V2 | ขวดน้ำปลาร้าหม่ำ 350 | ขวดเนอร์วาน่า 550 | ขวดเบียร์ 330 V2 | ขวดไทยเท 250 | ขวดเบลมองด์ 220 | ขวดน้ำมันรำข้าว 550 | ขวด 7coin 300 | ขวดแก้วแวคคัม 350 | ขวดแวคคัม 600 | ขวดจรวด 435 | ขวดเจ็นเจ 350 | ขวดคอมมานโด 600 | ขวดอินโนเฟรช 465 | ขวดอินโนเฟรช 455 | ขวดน้ำดื่ม 2000 | ขวดปาปาแพค 150 KR | ขวดปาปาแพค 200 KR | ขวดปาปาแพค 220 KR | ขวดปาปาแพค 250 KR | ขวดเบลมองด์ 1000 | ขวดเบลมองด์ 500 (Online) | ขวดฉั่วฮะเส็ง 380 | ขวดบีสปอร์ต 320 | ขวดเอโร่ 1000 | ขวดอนันดา 320 | ขวดซากุระ 700 | ขวดซากุระ 500 | ขวดกรุงสยาม 450 V2 | ขวดไทฮันนี่ 700 | ขวดเหล่าธงสิงห์ 1000 | ขวดวาลาไทย 320\n\n[C] CAUSE (per machine) — for each table row's machine-problem cell:\n- Each machine maps to ONE code list below (several machines share a list). Find the group that contains machine_raw.\n- If the handwritten cause matches a code in that machine's list, output the EXACT code string from the list.\n- Output the RAW text (exactly as read) when the cause is clearly free Thai text not in the list (e.g. \"ช่างหยุดเครื่อง...\", \"ช่างเปิดเครื่องผลิต...\", \"เป่ารั่ว...\", notes about other machines/parts).\n- If machine_raw is KM175 or NB40 (no code list): ALWAYS output the raw text as read.\n\nCODE LIST — applies to machines: PF8/3, PF8/5\nTEMP UP BERREL REAR | TEMP UP BERREL MIDDLE | TEMP UP BERREL FRONT | TEMP UP BERREL NOZZLE | TEMP UP HR BLOCK A | TEMP UP HR BLOCK B | TEMP UP HR SPRUE | TEMP UP HR NOZZLE A | TEMP UP HR NOZZLE B | TEMP UP HR NOZZLE C | TEMP UP HR NOZZLE D | TEMP UP HR NOZZLE E | TEMP UP HR NOZZLE F | TEMP UP HR NOZZLE G | TEMP UP HR NOZZLE H | TEMP DW BARREL REAR | TEMP DW BERREL MIDDLE | TEMP DW BERREL FRONT | TEMP DW BERREL NOZZLE | TEMP DW HR BLOCK A | TEMP DW HR BLOCK B | TEMP DW HR SPRUE | TEMP DW HR NOZZLE A | TEMP DW HR NOZZLE B | TEMP DW HR NOZZLE C | TEMP DW HR NOZZLE D | TEMP DW HR NOZZLE E | TEMP DW HR NOZZLE F | TC BANG OUT BARREL REAR | TC BANG OUT BARREL MIDDLE | TC BANG OUT BARREL FRONT | TC BANG OUT BARREL NOZZLE | TC BANG OUT HR BLOCK A | TC BANG OUT HR BLOCK B | TC BANG OUT HR SPRUE | TC BANG OUT OIL | TC BANG OUT HA NOZZLE A | TC BANG OUT HA NOZZLE B | TC BANG OUT HA NOZZLE C | TC BANG OUT HA NOZZLE D | TC BANG OUT HA NOZZLE E | TC BANG OUT HA NOZZLE F | TC BANG OUT HA NOZZLE G | TC BANG OUT HA NOZZLE H | TEMP BOARD 1 CPU ERROR | TEMP BOARD 2 CPU ERROR | TEMP BOARD 3 CPU ERROR | TEMP BOARD 4 CPU ERROR | TEMP UP OIL | EM STOP | MANUAL OPERATION ERROR | TIME ERROR (V-P) | SHORT SHOT | OVER PACK | FLASH DETECTOR (SQ81,82) | SCREW NOT CHARGED | TIME ERROR (CYCLE) | TIME ERROR (TRANSFER) | DROP OUT COMFIRM (PHS1) | PUMP ALARM (EM PUMP) | MOTOR ALARM | LEAKAGE ALARM | NO WATER FLOW | PUMP RUN | SERVO ERROR (ROTATION:SERVO 1) | SERVO ERROR (TRANSFER:SERVO 2) | S.E:INJ.UNIT FW(P.S.) (SP1) | S.E:INJ.UNIT BW (SP15) | S.E:INJ.MOLD T.S. (SQ81,SQ82) | S.E:SERVO MOTOR1 STOP(I.M. OP(SQ11)) | S.E:LOCK PIN UP/DW (SQ41,SQ42) | S.E:EJECT UP/DW (SQ43,SQ44) | S.E:SPLIT MOLD UP/DW (SQ45,SQ46) | S.E:ROTATION FW/REV (SQ47,SQ48) | RESISTANCE ALARM (SERVO1) | S.E:LIP PLATE UP (PHS11a.b) | S.E:PREFORM DETECTOR (PHS12a.b) | S.E:INJ.MOLD OP/CL (SQ11,SQ14) | S.E:LIP CAV. PROTECTOR (SQ11,SQ14) | S.E:PREFORM DETECTOR (POT) (PHS81) | S.E:BLOW MOLD OP/CL (SQ21,22/SQ24) | S.E:BOTTOM UP/DW (SQ26/SQ27) | S.E:STRETCH HOLD FW/BW (SQ36/SQ37) | S.E:STRETCH UNIT UP/DW (SQ38/SQ39) | S.E:SEAL PISTON DW 1-4 (SQ31-SQ34) | S.E:TAKEOUT UNIT UP/DW (SQ72/SQ73) | S.E:BOTTLE INVERT FP/BW (SQ74/SQ75) | S.E:TAKEOUT UNIT FW/BW (SQ76/SQ77) | S.E:TRANSFER INITIAL (SQ80) | S.E:RECEIPT UP/DW (SQ91/SQ92) | S.E:CHANDE PITCH FW/BW (SQ93AB/SQ94AB) | S.E:TRAV.P.EJE./CHU./GATE (SQ95/96/97) | S.E:PREFORM INSERT UP/DW (SQ99/SQ100) | S.E:PREFORM CLAMP OP/CL (SQ101/SQ102) | S.E:INVERSE UNIT FE/BW (SQ104/SQ103) | S.E:PREFORM INVERSE FP/BW (SQ108/SQ107) | S.E:P.ORIENT.FW/BW (SQ110,1/SQ112,3) | T.E:RECEIPT UP (SQ91/AV1-1b) | T.E:RECEIPT DW (SQ92/AV1-1a) | T.E:TRAV.EJE.POS.(SQ95/AV1-2,AV1-7) | T.E:TRAV.GATE CUT POS. (SQ97/AV1-2,7) | T.E:INVERSE UNIT FW (SQ104/AV1-3a) | T.E:INVERSE UNIT BW (SQ103/AV1-3b) | T.E:PREFORM CLAMP OP (SQ101/AV1-4) | T.E:PREFORM CLAMP CL (SQ102/AV1-4) | T.E:PREFORM INVERSE FW (SQ108/AV1-5a) | T.E:PREFORM INVERSE BW (SQ107/AV1-5b) | T.E:CHANGE PITCH FW (SQ93A,B/AV1-6) | T.E:CHANGE PITCH BW (SQ94A,B/AV1-6) | T.E:TRAV.CHUCK POS. (SQ96/AV1-2,1-7) | T.E:PREFORM INSERT UP (SQ99/AV1-8b) | T.E:PREFORM INSERT DW (SQ100/AV1-8a) | T.E:PREFORM ORIENTION FW 1(SQ110) | T.E:PREFORM ORIENTION FW 2(SQ111) | T.E:PREFORM ORIENTION BW 1(SQ112) | T.E:PREFORM ORIENTION BW 2(SQ113) | T.E:INJ.MOLD OP(SQ11/V13,14,15,111) | T.E:INJ.MOLD CL(SQ14,SP2/V13,14,15,111) | T.E:INJ.MOLD CL P.S. (SP2(V90)) | T.E:INJ.UNIT FW (P.S.) (SP1/V65) | T.E:INJ.UNIT BW (SQ15/V65) | T.E:LOCK PIN UP (SQ41/AV3-2) | T.E:LOCK PIN DW (SQ42/AV3-2) | T.E:RATATION FW (SQ47/SERVO1) | T.E:RATATION REV. (SQ48/SERVO1) | T.E:SPLIT MOLD UP (SQ45/AV3-1b) | T.E:SPLIT MOLD DW (SQ46/AV3-1a) | T.E:EJECT UP (SQ43/V134b) | T.E:EJECT DW (SQ44/V134a) | T.E:BOTTOM MOLD UP (SQ26/AV4-3a) | T.E:BOTTOM MOLD DW (SQ27/AV4-3b) | T.E:BLOW MOLD OP(SQ21,SQ22/V16,V17) | T.E:BLOW MOLD CL(SQ24,83,SP3/V16,V17) | T.E:STRETCH UNIT UP (SQ38/AV4-1a) | T.E:STRETCH UNIT DW (SQ38/AV4-1b) | T.E:STRETCH HOLD FW (SQ36/AV2-5) | T.E:STRETCH HOLD BW (SQ37/AV2-5) | T.E:STRETCH DW (SQ35/V29b) | T.E:BOTTLE CLAMP OP (AV2-1) | T.E:BOTTLE CLAMP CL (SQ71/AV2-1) | T.E:BOTTLE EJE. UNIT UP (SQ72/AV2-2b) | T.E:BOTTLE EJE. UNIT DW (SQ73/AV2-2a) | T.E:BOTTLE INVERSE FW (SQ74/AV2-3) | T.E:BOTTLE INVERSE BW (SQ75/AV2-3) | T.E:BOTTLE MOVEMENT FW (SQ76/AV2-4) | T.E:BOTTLE MOVEMENT BW (SQ77/AV2-4) | T.E:TRANSFER INITIAL (SQ80/SERVO2) | ช่างเปิดเครื่องผลิต ปาปาแพค 200*2 + ปาปาแพค 250*2 | ช่างหยุดเครื่องแก้ไข เป่ารั่ว | ช่างหยุดเครื่องตามแผน | ช่างหยุดเครื่องแก้ไข น้ำมันรั่ว | ช่างหยุดเครื่องแก้ไข ก้นเบี้ยว | ช่างเปิดเครื่องผลิต อนันดา 320*1 + เซ็นทรัล 330 V2*1 + Vince 500*2 | ช่างหยุดเครื่องแก้ไข SP แหว่ง | เครื่องไม่หยุด | ช่างหยุดเครื่องของครบ | ช่างเปิดเครื่องผลิต อนันดา 350*4 | ช่างหยุดเครื่องแก้ไข\n\nCODE LIST — applies to machines: PF8/6, PF8/7, ASB250/3\nPosi.Err:Inj.M stopper Unlock(SQ302) | S.E:Inj.mold stopper (SQ301/SQ302) | Time over:Inj.M stopper Lock (SQ301) | Time over:Inj.M stopper Unlock (SQ302) | Org pos.Err:Inj.M stopper Lock(SQ301) | Org pos.Err:Inj.M stopper Unlock(SQ302) | Production finish | S.E:Lock pin UP/DW (SQ41/SQ42) | S.E:Eject UP/DW (SQ43/SQ44) | S.E:Split mold UP/DW(SQ45/SQ46) | S.E:Rotation FW/REV.(SQ47/SQ48) | S.E:Inj.mold OP/CL (SQ11/SQ14) | S.E:Blow mold OP/CL(SQ21,22/SQ24) | S.E:Bottom UP/DW (SQ26/SQ27) | S.E:Stretch hold FW/BW(SQ36/SQ37) | S.E:Stretch unit UP/DW(SQ38/SQ39) | S.E:Takeout unit UP/DW(SQ72/SQ73) | S.E:Bottle inverse FW/BW(SQ74/SQ75) | S.E:Bottle movement FW/BW(SQ76/SQ77) | S.E:Receipt UP/DW(SQ91/SQ92) | S.E:Change pitch OP/CL(SQ93/SQ94) | S.E:Traverse position(SQ95/SQ96/SQ97) | S.E:Preform insert UP/DW(SQ99/SQ100) | S.E:Preform clamp OP/CL(SQ101/SQ102) | S.E:Inverse unit FW/BW(SQ104/SQ103) | S.E:Preform inverse FW/BW(SQ108/SQ107) | S.E:Heater shutter OP/CL(SQ135/SQ136) | S.E:Pre.orientation FW/BW(SQ110-SQ113) | Org pos.Err:Lock pin DW(SQ42) | Org pos.Err:Eject UP(SQ43) | Org pos.Err:Split mold UP(SQ45) | Org pos.Err:Rotation posi.(SQ47/SQ48) | Org pos.Err:Inj.mold OP(SQ11) | Org pos.Err:Blow mold OP(SQ21,SQ22) | Org pos.Err:Bottom mold DW(SQ27) | Org pos.Err:Seal piston DW(SQ31-SQ34) | Org pos.Err:Stretch DW(SQ35) | Org pos.Err:Stretch hold BW(SQ37) | Org pos.Err:Stretch unit DW(SQ39) | Org pos.Err:Bottle clamp(SQ71) | Org pos.Err:Takeout unit DW(SQ73) | Org pos.Err:Bottle inverse BW(SQ75) | Org pos.Err:Bottle movement BW(SQ77) | Org pos.Err:Transfer initial(SQ80) | Org pos.Err:Receipt UP(SQ91) | Org pos.Err:Change pitch A OP(SQ93A,B) | Org pos.Err:Traverse position(SQ96) | Org pos.Err:Preform insert UP(SQ99) | Org pos.Err:Preform clamp OP(SQ101) | Org pos.Err:Inverse unit BW(SQ103) | Org pos.Err:Preform inverse BW(SQ107) | Org pos.Err:Heater shutter OP(SQ135) | Org pos.Err:Pre.orientation BW(SQ112,3) | Lip plate UP (PHS11a,b) | Inj.core preform detector (PHS12a,b) | Lip cav.protector (SQ17,SQ18) | Org pos.Err:Servo 1 PSET (Rotation) | Org pos.Err:Servo 2 WPSET (Transfer) | Pot preform detector (PHS81) | Time over:Lock pin UP (SQ41) | Time over:Lock pin DW (SQ42) | Time over:Eject UP (SQ43) | Time over:Eject DW (SQ44) | Time over:Split mold UP (SQ45) | Time over:Split mold DW (SQ46) | Time over:Rotation FW (SQ47) | Time over:Rotation BW (SQ48) | Time over:Inj.mold OP (SQ11) | Time over:Inj.mold CL (SQ14) | Time over:Inj.mold CL press.up (SP2) | Time over:Inj.unit FW PS (SP1) | Time over:Inj.unit (SQ15) | Time over:Blow mold OP (SQ21,SQ22) | Time over:Blow mold CL (SQ24) | Time over:Blow mold CL TS (SQ83) | Time over:Blow M CL press up (SP3) | Time over:Bottom UP (SQ26) | Time over:Bottom DW (SQ27) | Time over:Seal piston DW (SQ31-SQ34) | Time over:Stretch DW (SQ35) | Time over:Stretch hold FW (SQ36) | Time over:Stretch hold BW (SQ37) | Time over:Stretch unit UP (SQ38) | Time over:Stretch unit DW (SQ39) | Time over:Bottle clamp CL (SQ71) | Time over:Bottle clamp OP (SQ71) | Time over:Takeout unit UP (SQ72) | Time over:Takeout unit DW (SQ73) | Time over:Bottle inverse FW (SQ74) | Time over:Bottle inverse BW (SQ75) | Time over:Bottle movement FW (SQ76) | Time over:Bottle movement BW (SQ77) | Time over:Transfer initial (SQ80) | Time over:Receipt UP (SQ91) | Time over:Receipt DW (SQ92) | Time over:Change pitch OP (SQ93A,B) | Time over:Change pitch CL (SQ94A,B) | Time over:Traverse <Eject> (SQ95) | Time over:Traverse <Prefo.clamp> (SQ96) | Time over:Traverse <Gate cut> (SQ97) | Time over:Preform insert UP (SQ99) | Time over:Preform insert DW (SQ100) | Time over:Preform clamp OP (SQ101) | Time over:Preform clamp CL (SQ102) | Time over:Inverse unit FW (SQ104) | Time over:Inverse unit BW (SQ103) | Time over:Preform inverse FW (SQ108) | Time over:Preform inverse BW (SQ107) | Time over:Heater shutter CL (SQ136) | Time over:Heater shutter OP (SQ135) | Time over:Rotation Servo 1 PSET | Time over:Transfer Servo 2 WPSET | Time over:Pre.orientation FW (SQ110,1) | Time over:Pre.orientation BW (SQ112,3) | Time over:Blow air decomp.(SP4-SP7) | Posi.Err:Lock pin UP (SQ41 off) | Posi.Err:Lock pin DW (SQ42 off) | Posi.Err:Eject UP (SQ43 off) | Posi.Err:Split mold UP (SQ45 off) | Posi.Err:Rotation posi.(SQ47/SQ48) | Posi.Err:Inj.mold OP (SQ11 off) | Posi.Err:Blow mold OP (SQ21,SQ22 off) | Posi.Err:Bottom DW (SQ27 off) | Posi.Err:Seal piston DW (SQ31-SQ34 off) | Posi.Err:Stretch DW (SQ35 off) | Posi.Err:Stretch hold BW (SQ37 off) | Posi.Err:Stretch unit DW (SQ39 off) | Posi.Err:Bottle movement BW (SQ77 off) | Posi.Err:Inverse unit BW (SQ103 off) | Posi.Err:Heater shutter OP (SQ135 off) | Posi.Err:Pre.orientation BW (SQ112,113) | Time error (V-P) | Short shot | Over pack | Flash detector (SQ81,82) | Screw not charged | Time error (Cycle) | Time error (Transfer) | Takeout confirm (PHS1) | Pump alarm (EH Pump) | Motor over load | Leakage alarm | No water flow | Servo error (Rotation:Servo 1) | Servo error (Transfer:Servo 2) | No Air flow (KA-C, Heater 2 Blower) | Time over (charge) | Manual operation error | Rotate rotary table | Blow air decomp.1 Error (SP4-SP7) | Servo brake alarm | Servo 1(Rot.)is not running | Servo 2(Tra.)is not running | Inj.mold Touch SW off | Blow mold Touch SW off | Inj.mold CL press.down | Blow mold CL press.down | Inj.unit(SQ2) off | Inj.unit(SQ15) off | Pump run | EM Stop | HR gate pin remains opened | Temp.High Barrel REAR (1-1ch) | Temp.High Barrel MIDDLE (1-2ch) | Temp.High Barrel FRONT (1-3ch) | Temp.High Barrel NOZZLE (1-4ch) | Temp.High HR Block A (2-1ch) | Temp.High HR Block B (2-2ch) | Temp.High HR Sprue (2-3ch) | Temp.High Oil | Temp.High HR Nozzle A (3-1ch) | Temp.High HR Nozzle B (3-2ch) | Temp.High HR Nozzle C (3-3ch) | Temp.High HR Nozzle D (3-4ch) | Temp.High HR Nozzle E (4-1ch) | Temp.High HR Nozzle F (4-2ch) | Temp.High HR Nozzle G (4-3ch) | Temp.High HR Nozzle H (4-4ch) | Temp.Low Barrel REAR (1-1ch) | Temp.Low Barrel MIDDLE (1-2ch) | Temp.Low Barrel FRONT (1-3ch) | Temp.Low Barrel NOZZLE (1-4ch) | Temp.Low HR Block A (2-1ch) | Temp.Low HR Block B (2-2ch) | Temp.Low HR Sprue (2-3ch) | Temp.Low HR Nozzle A (3-1ch) | Temp.Low HR Nozzle B (3-2ch) | Temp.Low HR Nozzle C (3-3ch) | Temp.Low HR Nozzle D (3-4ch) | Temp.Low HR Nozzle E (4-1ch) | Temp.Low HR Nozzle F (4-2ch) | Temp.Low HR Nozzle G (4-3ch) | Temp.Low HR Nozzle H (4-4ch) | TC Burn out Barrel REAR (1-1ch) | TC Burn out Barrel MIDDLE (1-2ch) | TC Burn out Barrel FRONT (1-3ch) | TC Burn out BARREL Nozzle (1-4ch) | TC Burn out HR Block A (2-1ch) | TC Burn out HR Block B (2-2ch) | TC Burn out HR Sprue (2-3ch) | TC Burn out OIL (2-4ch) | TC Burn out HR Nozzle A (3-1ch) | TC Burn out HR Nozzle B (3-2ch) | TC Burn out HR Nozzle C (3-3ch) | TC Burn out HR Nozzle D (3-4ch) | TC Burn out HR Nozzle E (4-1ch) | TC Burn out HR Nozzle F (4-2ch) | TC Burn out HR Nozzle G (4-3ch) | TC Burn out HR Nozzle H (4-4ch) | Temp.board 1 CPU error | Temp.board 2 CPU error | Temp.board 3 CPU error | Temp.board 4 CPU error\n\nCODE LIST — applies to machines: PF8/8, TE\nLock pin UP&DW (SQ41, 42) ON together | Eject UP&DW (SQ43, 44) ON together | Split mold UP&DW (SQ45, 46) ON together | Rotation table CW&CCW (SQ47, 48) ON together | Inj.Mold Lock FW&BW (SQ301, 302) ON together | Inj.Mold OP&CL (SQ11, 14) ON together | Blow Mold OP1&CL (SQ21, 24) ON together | Blow Mold OP2&CL (SQ22, 24) ON together | Bottom UP&DW (SQ26, 27) ON together | Stretch Hold FW&BW (SQ36, 37) ON together | Stretch Unit UP&DW (SQ38, 39) ON together | Takeout Unit UP&DW (SQ72, 73) ON together | Takeout Rev.FW&BW (SQ74, 75) ON together | Takeout Unit FW&BW (SW76, 77) ON together | Receipt Unit UP&DW (SQ91, 92) ON together | Change pitch FW&BW (SQ93A, 94A) ON together | Change pitch FW&BW (SQ93B, 94B) ON together | Insert Unit UP&DW (SQ99, 100) ON together | Insert Unit Clamp OP&CL (SQ101, 102) ON together | Insert Unit FW&BW (SQ103, 104) ON together | Insert Unit Rev.FW&BW (SQ107, 108) ON together | Shutter OP&CL (SQ135, 136) ON together | Neck Orientation FW&BW (SQ110, 112) ON together | Neck Orientation FW&BW (SQ111, 113) ON together | Lock Pin DW (SQ42) not ON | Eject UP (SQ43) not ON | Split Mold UP (SQ45) not ON | Rotation Table Initial (SQ47 or 48) not ON | Lip UP (PHS11) not ON | Preform not being ejected is found.(PHS12) | Inj.Mold Lock BW (SQ302) not ON | Inj.Mold UP (SQ11) not ON | Lip cavity protector (SQ17) not ON | Lip cavity protector (SQ18) not ON | Blow Mold OP (SQ21) not ON | Blow Mold OP (SQ22) not ON | Bottom UP (SQ26) not ON | Seal piston DW (SQ31) not ON | Seal piston DW (SQ32) not ON | Seal piston DW (SQ33) not ON | Seal piston DW (SQ34) not ON | Stretch DW (SQ35) not ON | Stretch Hold BW (SQ37) not ON | Stretch unit DW(SQ39) not ON | Blow exhaust pressure (SP4) not ON | Blow exhaust pressure (SP5) not ON | Blow exhaust pressure (SP6) not ON | Blow exhaust pressure (SP7) not ON | Rotation Table RDY signal not ON | Rotation Table PSET signal not ON | Blow Transfer RDY signal not ON | Blow Transfer PSET signal not ON | Takeout Unit DW (SQ73) not ON | Takeout Rev.BW (SQ75) not ON | Takeout Unit BW (SQ77) not ON | Blow transfer Initial (SQ80) not ON | Receipt Unit UP (SQ91) not ON | Change pitch A FW (SQ93A) not ON | Change pitch B FW (SQ93B) not ON | Receipt Unit Insert position (SQ96) not ON | Insert Unit UP (SQ99) not ON | Insert Clamp OP (SQ101) not ON | Insert Unit BW (SQ103) not ON | Insert Unit Rev.BW (SQ107) not ON | Shutter OP (SQ135) not ON | Neck Orientation BW (SQ112) not ON | Neck Orientation BW (SQ113) not ON | Turn Operation switch to N position | Shot size not sufficient | Resin is not completely melted | Improper Nozzle touching | Nozzle BW (SQ15) not ON | Inj.Mold Pressure SW (SP2) not ON | Inj.Mold Touch SW (SQ81) not ON | Inj.Mold Touch SW (SQ82) not ON | Turn Key Switch ON | Chiller water is not running | Tower water is not running | High pressure air is not supplied | Lock pin UP (SQ41) not ON | Lock pin DW (SQ42) not ON | Eject DW (SQ44) not ON | Split Mold DW (SQ46) not ON | Rotation Table Blow side Initial (SQ47) not ON | Rotation Table Inj. side Initial (SQ48) not ON | Preform detect. (PHS12) not ON | Inj.Mold Lock FW (SQ301) not ON | Inj.Mold OP (SQ11) not ON | Inj.Mold CL (SQ14) not ON | Inj.Mold CL Pressure SW (SP2) not ON | Inj.Mold Touch SW1 (SQ81) not ON | Inj.Mold Touch SW2 (SQ82) not ON | Inj.Unit FW Pressure SW (SP1) not ON | Pot Preform Detect. (PHS81) not ON | Lip Protector 1 (SQ17) not ON | Lip Protector 2 (SQ18) not ON | Blow Mold CL (SQ24) not ON | Blow Mold Touch SW (SQ83) not ON | Bottom DW (SQ27) not ON | Blow Mold CL Pressure SW (SP3) not ON | Seal Piston DW (SQ31) not ON | Seal Piston DW (SQ32) not ON | Seal Piston DW (SQ33) not ON | Seal Piston DW (SQ34) not ON | Stretch Hold FW (SQ36) not ON | Stretch Unit UP (SQ38) not ON | Stretch Unit DW (SQ39) not ON | Chiller water detection LS is not confirmed | Takeout clamp CL (SQ71) not ON | Takeout Unit UP (SQ72) not ON | Takeout Rev.FW (SQ74) not ON | Takeout Unit FW (SQ76) not ON | Takeout Clamp OP (SQ71) not OFF | Blow Transfer Initial SW (SQ80) not ON | Receipt Unit DW (SQ92) not ON | Change pitch A BW (SQ94A) not ON | Change pitch B BW (SQ94B) not ON | Traverse Unit Eject position (SQ95) not ON | Traverse Unit Insert position (SQ96) not ON | Traverse Unit Gatecut position (SQ97) not ON | Insert Unit DW (SQ100) not ON | Insert Clamp CL (SQ102) not ON | Insert Unit Blow side (SQ104) not ON | Insert Unit Inj. side (SQ103) not ON | Insert Unit Rev.Blow side (SQ108) not ON | Insert Unit Rev.Inj. side (SQ107) not ON | Neck Orientation Unit FW1 (SQ110) not ON | Neck Orientation  Unit FW2 (SQ111) not ON | Neck Orientation Unit BW1 (SQ112) not ON | Neck Orientation Unit BW2 (SQ113) not ON | Shutter CL (SQ136) not ON | Lock pin is out of UP position while Rotary table is rotating | Eject is out of UP position while Rotary table is rotating | Split mold is out of UP position while Rotary table is rotating | Injection mold is out of UP position while Rotary table is rotating | Drop prevention unit is out of OP position during injection mold clamping | Blow mold is out of OP position during blow transfer (SQ21) | Blow mold is out of OP position during blow transfer (SQ22) | Preform insert unit is out of BW position during blow transfer | Take-out unit is out of BW position during blow transfer | Seal piston is out of DW position during blow transfer.(SQ30) | Seal piston is out of DW position during blow transfer.(SQ31) | Seal piston is out of DW position during blow transfer.(SQ32) | Seal piston is out of DW position during blow transfer.(SQ33) | Shutter is out of OP position during blow transfer | Stretch is out of DW position during blow transfer | Stretch unit is out of DW position during blow transfer | Barrel RR thermocouple disconnected | Barrel RF thermocouple disconnected | Barrel M thermocouple disconnected | Barrel F thermocouple disconnected | Barrel Nozzle thermocouple disconnected | Thermocouple of Hot runner Sprue disconnected | Thermocouple of Hot runner Block disconnected | Thermocouple of Hot runner Nozzle A disconnected | Thermocouple of Hot runner Nozzle B disconnected | Thermocouple of Hot runner Nozzle C disconnected | Thermocouple of Hot runner Nozzle D disconnected | Thermocouple of Hot runner Nozzle F disconnected | Thermocouple of Hot runner Nozzle G disconnected | Thermocouple of Hot runner Nozzle H disconnected | Thermocouple of Oil disconnected | Barrel RR heater disconnected | Barrel RF heater disconnected | Barrel M heater disconnected | Barrel F heater disconnected | Barrel Nozzle heater disconnected | Heater of Hotrunner Sprue disconnected | Heater of Hotrunner Block disconnected | Heater of Hot runner Nozzle A disconnected | Heater of Hot runner Nozzle B disconnected | Heater of Hot runner Nozzle C disconnected | Heater of Hot runner Nozzle D disconnected | Heater of Hot runner Nozzle E disconnected | Heater of Hot runner Nozzle F disconnected | Heater of Hot runner Nozzle G disconnected | Heater of Hot runner Nozzle H disconnected | Barrel temperature exceeds the upper limit | Barrel temperature is below the lower limit | Hot runner Block temperature exceeds the upper limit | Hot runner Block temperature is below the lower limit | Hot runner Nozzle temperature exceeds the upper limit | Hot runner Nozzle temperature is below the lower limit | Oil temperature exceeds the upper limit | Oil temperature is below the lower limit | Preform heater wire is cut | Production quantity reached its target | Short shot detected | Over pack detected | Molding condition is out of setting range | Bottle burst | Blow air pressure is lowered | Chiller water flow rate is lowered | Injection Mold Touch Switch turned off. (SQ81) | Injection Mold Touch Switch turned off. (SQ82) | Injection Mold Pressure Switch turned off | Nozzle FW Pressure Switch turned off | Blow Mold Touch Switch turned off | Blow Mold Pressure Switch turned off | Injection side cycle is over | Blow side cycle is over | V-P time is over | Charge time is over | Motor temperature increased | EH Pump alarm is generated | Blower air is not detected | Heater unit cooling water is not confirmed | Preform quantity is not confirmed | Replace Heater auto chain | Bottle take-out failure occurred.(PHS1) | Initializing has not finished correctly | Emergency stopped state | ช่างหยุดเครื่องตามแผน | ช่างเปิดเครื่องผลิต กรีนเมท 400*4 | ช่างหยุดเครื่องแก้ไข ปากดำ M2-3 | เครื่องไม่หยุด | ช่างหยุดเครื่องแก้ไข ปากดำ M1-2-3-4 | เครื่องหยุด ไฟดับ | ช่างเปิดเครื่องผลิต ไคโอ 350*1 + เคลลี่ 450*3 | ช่างหยุดเครื่องแก้ไข คอแหวน | ช่างหยุดเครื่องแก้ไข ปากดำ | ช่างหยุดเครื่องแก้ไข SP แหว่ง M1 | ช่างเปิดเครื่องผลิต BSC400*3 + เคลลี่ 450*1 | ช่างหยุดเครื่องแก้ไข คอแหวน M3 เป่าไม่ออก M2 | เครื่องหยุด | ช่างหยุดเครื่องแก้ไข เป่ารั่ว M4 | ช่างหยุดเครื่องแก้ไข ก้นเบี้ยว M2\n\n=== STEP 2: FORM STRUCTURE ===\nHeader: machine after \"ประจำเครื่อง\"; product after \"ผลิตขวด\". DATE is written as \"วันที่ [day] เดือน [month] ปี [year]\" — read THREE SEPARATE numbers, never concatenate them: day = integer 1–31 (one or two digits ONLY; a day can NEVER exceed 31 — if you seem to read 3+ digits such as \"107\", you have merged the day with another number, so re-read ONLY the day blank, e.g. it is probably \"17\"); month = integer 1–12; year_be = the Thai Buddhist year as written, usually 2 digits (e.g. 69). The date is a real past calendar date and must not be in the future.\nTable columns (left→right): 1) เวลาปิด/STOP (machine stopped, HH:MM) 2) เวลาเปิด/START (machine restarted, HH:MM) 3) Duration 4) Machine Problem (the cause → apply [C]) 5) Remedy/การแก้ไข (often blank) 6) Operator Name 7) DEM Rep Name (technician).\n\nRULES:\n1. Extract EVERY non-empty row, top to bottom, in order. Include the opening row (often only a START time + note like \"ช่างเปิดเครื่องผลิต...\") and the closing row (often only a STOP time).\n2. Empty cell → null. Times must be \"HH:MM\" (24h). Never invent values; transcribe what is written.\n3. If a body row is a handwritten round summary like \"รอบ 2 เสียเวลา 10 นาที\", do NOT add it to rows[]; put its text in \"round_summary_note\".\n4. Ditto marks (\" or ๆ) in operator/technician mean same as the row above — you may copy the value down.\n\n=== OUTPUT JSON (exactly this shape) ===\n{\n  \"machine_raw\": \"<one of the 9 machines>\",\n  \"product\": \"<closest product from list, or raw>\",\n  \"date\": { \"day\": <integer 1-31>, \"month\": <integer 1-12>, \"year_be\": <2-digit Thai Buddhist year as written, e.g. 69> },\n  \"rows\": [\n    { \"no\": 1, \"stop\": \"<HH:MM|null>\", \"start\": \"<HH:MM|null>\", \"duration_text\": \"<as written|null>\", \"cause\": \"<exact code or raw text>\", \"remedy\": \"<text|null>\", \"operator\": \"<text|null>\", \"technician\": \"<text|null>\" }\n  ],\n  \"round_summary_note\": \"<text|null>\"\n}",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        4752
+      ],
+      "id": "bc2f8591-ec65-4521-82c7-5aebda97af51",
+      "name": "OCR: อ่านฟอร์ม",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet moved = [];\ntry {\n  moved = $('ย้ายไป 2-Processing').all();\n} catch (e) {\n  moved = [];\n}\n\nconst out = [];\n\nfor (let idx = 0; idx < items.length; idx++) {\n  const j = items[idx].json || {};\n\n  // --------------------------------------------------\n  // 1. อ่าน metadata ของไฟล์ต้นฉบับ\n  // --------------------------------------------------\n  let fileId = null;\n  let fileName = null;\n  let mimeType = null;\n\n  try {\n    const mv = moved[idx];\n\n    if (mv && mv.json) {\n      fileId = mv.json.id || null;\n      fileName = mv.json.name || null;\n      mimeType = mv.json.mimeType || null;\n    }\n  } catch (e) {}\n\n  const extension = fileName && fileName.includes('.')\n    ? fileName.split('.').pop().toLowerCase()\n    : null;\n\n  const fileMeta = {\n    id: fileId,\n    name: fileName,\n    extension,\n    mime_type: mimeType,\n    drive_link: fileId\n      ? `https://drive.google.com/file/d/${fileId}/view`\n      : null\n  };\n\n  // --------------------------------------------------\n  // 2. ดึงข้อความดิบจาก Gemini\n  //    เก็บ raw ก่อน clean / JSON.parse\n  // --------------------------------------------------\n  let raw = '';\n\n  try {\n    if (\n      j.content &&\n      j.content.parts &&\n      j.content.parts[0] &&\n      typeof j.content.parts[0].text === 'string'\n    ) {\n      raw = j.content.parts[0].text;\n\n    } else if (typeof j.text === 'string') {\n      raw = j.text;\n\n    } else if (\n      j.candidates &&\n      j.candidates[0] &&\n      j.candidates[0].content &&\n      j.candidates[0].content.parts &&\n      j.candidates[0].content.parts[0] &&\n      typeof j.candidates[0].content.parts[0].text === 'string'\n    ) {\n      raw = j.candidates[0].content.parts[0].text;\n\n    } else {\n      raw = JSON.stringify(j);\n    }\n\n    // --------------------------------------------------\n    // 3. Clean เฉพาะสำเนาที่จะนำไป JSON.parse\n    //    raw ด้านบนยังคงข้อความเดิม 100%\n    // --------------------------------------------------\n    let clean = String(raw || '').trim();\n\n    const fenced = clean.match(\n      /```(?:json)?\\s*([\\s\\S]*?)\\s*```/i\n    );\n\n    if (fenced && fenced[1]) {\n      clean = fenced[1].trim();\n    }\n\n    clean = clean\n      .replace(/^```(?:json)?/i, '')\n      .replace(/```$/i, '')\n      .trim();\n\n    const parsed = JSON.parse(clean);\n\n    // --------------------------------------------------\n    // 4. คืนค่าแบบ backward-compatible\n    //    downstream เดิมยังใช้ machine_raw, rows ฯลฯ ได้\n    // --------------------------------------------------\n    out.push({\n      json: {\n        ...parsed,\n\n        _fileId: fileId,\n        _fileName: fileName,\n\n        _file: fileMeta,\n        _ocr_raw_text: raw,\n        _ocr_error: null\n      }\n    });\n\n  } catch (e) {\n    // --------------------------------------------------\n    // OCR ตอบมาแต่ parse JSON ไม่สำเร็จ\n    // --------------------------------------------------\n    out.push({\n      json: {\n        _ocr_error: e.message,\n        _ocr_raw_text: raw,\n\n        _fileId: fileId,\n        _fileName: fileName,\n        _file: fileMeta\n      }\n    });\n  }\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        4752
+      ],
+      "id": "4bed1bf3-6318-4eef-be7e-4426093e02d3",
+      "name": "แปลง JSON",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        5040
+      ],
+      "id": "1551b1ed-85fb-4948-9e26-55d7cbd7a510",
+      "name": "▶ ทดสอบด้วย mock",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// MOCK OCR — ข้อมูลฟอร์มจริง (ภาพ 0001) กำหนดเครื่อง = PF8/5 เพื่อทดสอบ downstream\nreturn [{ json: {\n  machine_raw: \"PF8/5\",\n  product: \"ธีรเดช กาญจนสิทธิ์ 12\",\n  date: { day: 17, month: 6, year_be: 69 },\n  rows: [\n    { no:1, stop:\"09:00\", start:\"09:15\", duration_text:\"15\", cause:\"T.E Bottle clamp op CAV2-12\",      remedy:null, operator:\"ธีรเดช\",      technician:\"Wai\" },\n    { no:2, stop:\"10:20\", start:\"10:25\", duration_text:\"5\",  cause:\"TE. INVERSE UNIT FWCSO 104 / AV1\",  remedy:null, operator:\"\\\"\",          technician:\"\\\"\" },\n    { no:3, stop:\"12:35\", start:\"12:40\", duration_text:\"5\",  cause:\"S.E. Receipt op/วอ (sq91/92)\",      remedy:null, operator:\"ภูธร+ธีรเดช\", technician:\"\\\"\" },\n    { no:4, stop:\"14:10\", start:\"14:20\", duration_text:\"10\", cause:\"S.E Receipt op/วอ. (sq 91/92)\",     remedy:null, operator:\"ธร + สุวิมล\", technician:\"แว\" },\n    { no:5, stop:\"14:30\", start:\"14:35\", duration_text:\"5\",  cause:\"ช่างหยุดเครื่อง เป่ารั่ว M1,2,3,4\", remedy:null, operator:\"\\\"\",          technician:\"\\\"\" },\n    { no:6, stop:\"15:00\", start:\"15:05\", duration_text:\"5\",  cause:\"ช่างหยุดเครื่อง เป่ารั่ว M1,2,3,4\", remedy:null, operator:\"\\\"\",          technician:\"\\\"\" },\n    { no:7, stop:\"18:00\", start:\"18:10\", duration_text:\"10\", cause:\"ช่างหยุดเครื่อง เป่ารั่ว M1,2,3,4\", remedy:null, operator:\"\\\"\",          technician:\"\\\"\" },\n    { no:8, stop:\"18:40\", start:null,    duration_text:null, cause:\"ช่างหยุดเครื่องย้ายอะไหล่ไป PF8/3\", remedy:null, operator:null,        technician:null }\n  ],\n  round_summary_note: null\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        5040
+      ],
+      "id": "4cc2f5bb-2b3c-4b2d-b9bc-365a7ff04ad1",
+      "name": "MOCK OCR (PF8/5)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// map เครื่อง->ชื่อแท็บจริง (มี /), วันที่ \"ใช้จากชื่อไฟล์เป็นหลัก\" (fallback OCR), แบ่งรอบตามเวลาปิด(รายแถว), ditto-fill, ฝัง rate\n// อัปเดต: วันที่ยึดจากชื่อไฟล์ YYYYMMDD ก่อนเสมอ (แก้ปัญหา OCR อ่านวันที่ผิด/อนาคต) + เก็บแถว \"มีแต่เวลาปิด/มีแต่เวลาเปิด\"\nconst o = $input.first().json;\nif (o._ocr_error) return [{ json: o }];\nconst MACHINE_MAP = {\n  \"PF8/3\":\"PF8/3\",\"PF8/5\":\"PF8/5\",\"PF8/6\":\"PF8/6\",\"PF8/7\":\"PF8/7\",\"PF8/8\":\"PF8/8\",\n  \"250/3\":\"ASB250/3\",\"ASB250/3\":\"ASB250/3\",\"ASB250\":\"ASB250/3\",\n  \"TE\":\"TE\",\"TRUE EASY\":\"TE\",\"TURE EASY\":\"TE\",\"KM175\":\"KM175\",\"NB40\":\"NB40\"\n};\nconst RATE = {\n  \"PF8/3\":[2571,42,2.38],\"PF8/5\":[2571,42,2.38],\"PF8/6\":[2571,42,2.38],\"PF8/7\":[2300,39,2.38],\n  \"PF8/8\":[2571,42,2.38],\"ASB250/3\":[2300,39,2.38],\"TE\":[2571,42,2.38],\"KM175\":[2300,39,4.5],\"NB40\":[1309,22,2.38]\n};\nconst DICT_FOR = {\n  \"PF8/3\":\"SD-DEM-056 | PF8/3\",\"PF8/5\":\"SD-DEM-056 | PF8/3\",\n  \"PF8/6\":\"SD-DEM-056 | PF8/6\",\"PF8/7\":\"SD-DEM-056 | PF8/6\",\"ASB250/3\":\"SD-DEM-056 | PF8/6\",\n  \"PF8/8\":\"SD-DEM-056 | PF8/8\",\"TE\":\"SD-DEM-056 | PF8/8\"\n};\nfunction mapMachine(raw){\n  const ex=String(raw||\"\").toUpperCase().trim();\n  if (MACHINE_MAP[ex]) return MACHINE_MAP[ex];\n  const k=ex.replace(/\\s+/g,\"\");\n  for (const key in MACHINE_MAP){ if (key.toUpperCase().replace(/\\s+/g,\"\")===k) return MACHINE_MAP[key]; }\n  return null;\n}\nfunction be2ce(y){ y=parseInt(y,10); if(y<100) y=2500+y; return y-543; }\nfunction toMin(t){ if(!t) return null; const m=String(t).match(/(\\d{1,2}):(\\d{2})/); return m?(+m[1])*60+(+m[2]):null; }\nfunction isDitto(v){ v=String(v||\"\").trim(); return ['\"','”','„','“',\"''\",\"ๆ\",\"/\",\"//\"].includes(v); }\n// รอบตามเวลา: รอบ1 08:00-19:59, รอบ2 20:00-07:59\nfunction roundOf(min){ return (min>=8*60 && min<=19*60+59) ? 1 : 2; }\nconst sheet=mapMachine(o.machine_raw);\nconst d=o.date||{};\n// ---- วันที่: ใช้จากชื่อไฟล์เป็นหลัก (YYYYMMDD) ถ้าชื่อไฟล์ไม่มีวันที่ค่อย fallback ไปใช้ค่าจาก OCR ----\nconst _fnDate=String(o._fileName||\"\").match(/(?:^|[^0-9])(20\\d{2})(\\d{2})(\\d{2})(?:[^0-9]|$)/);\nlet yy, mm, dd, _dateSrc;\nif(_fnDate){ yy=parseInt(_fnDate[1],10); mm=_fnDate[2]; dd=_fnDate[3]; _dateSrc=\"filename\"; }\nelse { yy=be2ce(d.year_be); mm=String(d.month).padStart(2,\"0\"); dd=String(d.day).padStart(2,\"0\"); _dateSrc=\"ocr\"; }\nconst date_iso=yy+\"-\"+mm+\"-\"+dd, date_disp=dd+\"-\"+mm+\"-\"+yy;\n// ---- ตรวจความสมเหตุผล (day 1-31, month 1-12); future-check เฉพาะตอน fallback OCR (ชื่อไฟล์เชื่อถือได้กว่า) ----\nconst _dayN=parseInt(dd,10), _monN=parseInt(mm,10);\nlet _today; try { _today=$now.toFormat('yyyy-LL-dd'); } catch(e){ const _t=new Date(); _today=_t.getFullYear()+\"-\"+String(_t.getMonth()+1).padStart(2,\"0\")+\"-\"+String(_t.getDate()).padStart(2,\"0\"); }\nlet _dateErr=null;\nif(!(_dayN>=1&&_dayN<=31)) _dateErr=\"วันที่ไม่สมเหตุผล (day=\"+dd+\") ต้องอยู่ 1-31\";\nelse if(!(_monN>=1&&_monN<=12)) _dateErr=\"เดือนไม่สมเหตุผล (month=\"+mm+\") ต้องอยู่ 1-12\";\nelse if(_dateSrc===\"ocr\" && date_iso>_today) _dateErr=\"วันที่ OCR (\"+date_disp+\") เกินวันปัจจุบัน (\"+_today+\") และชื่อไฟล์ไม่มีวันที่ให้ใช้แทน\";\nif(_dateErr) return [{ json:{ _error:_dateErr, dictSheet:\"SD-DEM-056 | PF8/3\", ocr:o, _fileId:o._fileId||null, _fileName:o._fileName||null } }];\nif(!sheet) return [{ json:{ _error:\"ไม่รู้จักเครื่อง: \"+o.machine_raw, dictSheet:\"SD-DEM-056 | PF8/3\", ocr:o, _fileId:o._fileId||null, _fileName:o._fileName||null } }];\nconst rr=RATE[sheet];\nconst dictSheet=DICT_FOR[sheet]||\"SD-DEM-056 | PF8/3\";\nconst hasDict=!!DICT_FOR[sheet];\n// รอบสำรองระดับฟอร์ม (ใช้กับแถวที่ไม่มีเวลาเลย): เวลาปิดของแถวแรกที่มี ไม่มีก็ใช้เวลาเปิด\nlet _ft=null;\nfor(const r of (o.rows||[])){ const t=toMin(r.stop) ?? toMin(r.start); if(t!=null){ _ft=t; break; } }\nconst _formRound = _ft!=null ? roundOf(_ft) : 1;\nlet lastT=null,lastOp=null;\nfunction hasTime(t){ return !!(t && String(t).trim() && /\\d{1,2}:\\d{2}/.test(String(t))); }\nlet rows=(o.rows||[]).map(r=>{\n  let te=String(r.technician||\"\").trim(); if(isDitto(te)) te=lastT; else if(te) lastT=te;\n  let op=String(r.operator||\"\").trim(); if(isDitto(op)) op=lastOp; else if(op) lastOp=op;\n  const causeTxt=String(r.cause||\"\").trim();\n  const hasStop=hasTime(r.stop), hasStart=hasTime(r.start);\n  if(!hasStop && !hasStart && !causeTxt) return null;   // แถวว่างจริง -> ข้าม\n  let stopVal, startVal;\n  if(hasStop && hasStart){ stopVal=r.stop; startVal=r.start; }\n  else if(hasStop){ stopVal=r.stop; startVal=\"-\"; }     // มีแต่เวลาปิด -> เปิด \"-\" (ระยะเวลา=0)\n  else if(hasStart){ stopVal=\"-\"; startVal=r.start; }   // มีแต่เวลาเปิด -> ปิด \"-\" (ระยะเวลา=0)\n  else { stopVal=null; startVal=null; }                 // ไม่มีเวลาแต่มีสาเหตุ(โน้ต) -> ระยะเวลา=0\n  const _rt = toMin(r.stop) ?? toMin(r.start);\n  const _round = (_rt!=null) ? roundOf(_rt) : _formRound;\n  return { stop:stopVal, start:startVal, cause:causeTxt, technician:te||null, operator:op||null, round:_round };\n}).filter(Boolean);\n// ---- เคสตารางว่าง \"เครื่องไม่หยุด\": ไม่มีแถวข้อมูลเลย แต่มีเครื่อง+วันที่ -> ใส่แถว \"เครื่องไม่หยุด\" 1 แถว (ระยะเวลา 0) ----\n// (เดิมจะถูกข้ามที่ 'สร้างค่าเขียน' ทำให้ไฟล์ค้างที่ 2-Processing) ตอนนี้เขียนตาม convention จริง (ดูตัวอย่าง PF8/8 แถว 67)\nif (rows.length === 0) {\n  let anyName=null;   // ดึงชื่อช่าง/ผู้ควบคุมจาก OCR ถ้ามี (แม้อยู่ในแถวที่ปกติจะถูกกรองทิ้ง)\n  for (const r of (o.rows||[])){ const t=String(r.technician||\"\").trim(), op=String(r.operator||\"\").trim();\n    if (t && !isDitto(t)){ anyName=t; break; } if (op && !isDitto(op)){ anyName=op; break; } }\n  rows = [{ stop:\"00:00\", start:\"00:00\", cause:\"เครื่องไม่หยุด\", technician:anyName, operator:null, round:1 }];\n}\n// ---- เลือก spreadsheet ตามเดือนจากชื่อไฟล์ + เตรียมข้อมูลสร้างใหม่ถ้าไม่มี ----\nconst _TH={1:\"มกราคม\",2:\"กุมภาพันธ์\",3:\"มีนาคม\",4:\"เมษายน\",5:\"พฤษภาคม\",6:\"มิถุนายน\",7:\"กรกฎาคม\",8:\"สิงหาคม\",9:\"กันยายน\",10:\"ตุลาคม\",11:\"พฤศจิกายน\",12:\"ธันวาคม\"};\nlet _SMAP={}; try { _SMAP=JSON.parse($('ตั้งค่า Spreadsheet1').first().json.sheetMapJson||\"{}\"); } catch(e){}\nconst _fnm=_fnDate;   // ใช้ผลลัพธ์ regex เดียวกับด้านบน (วันที่จากชื่อไฟล์)\nconst _ym=_fnm?(_fnm[1]+\"-\"+_fnm[2]):null;\nconst _monthTitle=_fnm?(\"รายงานการหยุดเครื่องจักร (Machine Breakdown) เดือน \"+_fnm[2]+\" | \"+(_TH[parseInt(_fnm[2],10)]||\"\")+\" \"+_fnm[1]):null;\nlet _SSID=_ym?(_SMAP[_ym]||null):($('ตั้งค่า Spreadsheet1').first().json.defaultSheetId||null);\nconst _need_resolve=!!(_ym && !_SSID);\nconst _nmNoExt=String(o._fileName||\"\").replace(/\\.[^.]+$/,\"\");\nconst _pm=_nmNoExt.match(/\\s*#(\\d+)\\s*$/);\nconst _part_no=_pm?parseInt(_pm[1],10):null;\nconst _is_multipart=_part_no!==null;\nconst _base_key=_nmNoExt.replace(/\\s*#\\d+\\s*$/,\"\");\nreturn [{ json:{ machine_raw:o.machine_raw, sheet, hasDict, dictSheet, date_iso, date_disp, round:_formRound,\n  spreadsheetId:_SSID, _ym:_ym, _monthTitle:_monthTitle, _need_resolve:_need_resolve,\n  rate:{h:rr[0],m:rr[1],n:rr[2]}, round_summary_note:o.round_summary_note||null, rows,\n  _base_key:_base_key, _part_no:_part_no, _is_multipart:_is_multipart,\n  _fileId:o._fileId||null, _fileName:o._fileName||null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        4768
+      ],
+      "id": "abdf957d-808f-4b72-bfdd-614682a6a16e",
+      "name": "เตรียม + map",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1O3txiGweuVgRfo2E_zQti98MHMpBrVNrsv4HfeMwjAE/values:batchGet",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "ranges",
+              "value": "={{ \"'\" + $json.dictSheet + \"'!B2:C1500\" }}"
+            },
+            {
+              "name": "valueRenderOption",
+              "value": "UNFORMATTED_VALUE"
+            },
+            {
+              "name": "majorDimension",
+              "value": "ROWS"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5456,
+        4624
+      ],
+      "id": "b0b62f4b-9592-4edf-8c7c-89c9964c9fe4",
+      "name": "โหลด dictionary",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        5664,
+        4624
+      ],
+      "id": "dc87ff50-b3da-4d40-a86e-6e20c7fb71c9",
+      "name": "รวม dict",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// อ่านจาก $json (Merge รวม prep + dict valueRanges) — ไม่อ้างชื่อ node\nconst prep = $json;\nif (prep._error || prep._ocr_error) return [{ json: prep }];\nlet dict=[];\ntry { const vr=prep.valueRanges; const vals=(vr&&vr[0]&&vr[0].values)?vr[0].values:[]; dict=vals.filter(r=>r&&r[0]); } catch(e){}\nfunction norm(s){ return String(s==null?\"\":s).toUpperCase().replace(/O/g,\"0\").replace(/[^A-Z0-9]/g,\"\"); }\nfunction roTotal(a,b){\n  let total=0; const stack=[[0,a.length,0,b.length]];\n  while(stack.length){\n    const s=stack.pop(); const a0=s[0],a1=s[1],b0=s[2],b1=s[3];\n    let bi=a0,bj=b0,bk=0,j2={};\n    for(let i=a0;i<a1;i++){ const nj={};\n      for(let j=b0;j<b1;j++){ if(a[i]===b[j]){ const k=(j2[j-1]||0)+1; nj[j]=k; if(k>bk){bk=k;bi=i-k+1;bj=j-k+1;} } }\n      j2=nj;\n    }\n    if(bk>0){ total+=bk; stack.push([a0,bi,b0,bj]); stack.push([bi+bk,a1,bj+bk,b1]); }\n  }\n  return total;\n}\nfunction ratio(a,b){ a=norm(a); b=norm(b); if(!a&&!b)return 1; if(!a||!b)return 0; return 2*roTotal(a,b)/(a.length+b.length); }\nfunction matchCause(raw){\n  // FIX: ข้อความไทยล้วน (normalize แล้วว่าง) -> เก็บดิบ ไม่ fuzzy (กันไปแมตช์ entry ไทยตัวแรกผิด ๆ เช่น \"เครื่องไม่หยุด\")\n  if(norm(raw)===\"\"){ return { code:String(raw||\"\").trim(), thai:\"\", score:0, matched:false }; }\n  let best=0,bc=null,bt=null;\n  for(const row of dict){ const r=ratio(raw,row[0]); if(r>best){best=r;bc=row[0];bt=row[1];} }\n  if(best>=0.6) return { code:bc, thai:(bt||\"\"), score:+best.toFixed(2), matched:true };\n  return { code:raw, thai:\"\", score:+best.toFixed(2), matched:false };\n}\nfunction toMin(t){ if(!t) return null; const m=String(t).match(/(\\d{1,2}):(\\d{2})/); return m?(+m[1])*60+(+m[2]):null; }\n// เรียงแถวตามรอบ (รอบ1 ก่อน รอบ2) คงลำดับเดิมภายในรอบเดียวกัน — รองรับทั้งไฟล์เดี่ยว/ไฟล์ต่อกัน(#1/#2)\nconst _rows = (prep.rows||[]).map((r,i)=>({r,i}))\n  .sort((a,b)=> ((a.r.round||1)-(b.r.round||1)) || (a.i-b.i))\n  .map(x=>x.r);\nconst seq={}; let totalMin=0; const events=[];\nfor(const r of _rows){\n  const c = prep.hasDict ? matchCause(r.cause) : { code:r.cause, thai:\"\", score:0, matched:false };\n  const _round=(r.round||prep.round||1);\n  const _seqKey=_round+\"|\"+c.code;\n  seq[_seqKey]=(seq[_seqKey]||0)+1;\n  const sm=toMin(r.stop), st=toMin(r.start);\n  let dur=(sm!=null && st!=null)?(st-sm):0; if(dur<0) dur+=1440;\n  totalMin+=dur;\n  events.push({ date:prep.date_iso, round:_round, stop:r.stop, start:r.start,\n    causeCode:c.code, causeThai:c.thai, matched:c.matched, score:c.score,\n    remedy:null, technician:r.technician, operator:r.operator, seq:seq[_seqKey], durMin:dur });\n}\nconst H=Math.floor(totalMin/60), M=totalMin%60;\nreturn [{ json:{\n  spreadsheetId: $('เริ่มเขียน1').first().json.spreadsheetId,\n  sheet:prep.sheet, dictSheet:prep.dictSheet, hasDict:prep.hasDict,\n  date_iso:prep.date_iso, date_disp:prep.date_disp, round:prep.round, rate:prep.rate,\n  events, summary:{ text:`วันที่ ${prep.date_disp} รวมเวลาที่หายไปทั้งสิ้น`,\n    totalMin, totalH:H, totalMM:M, count:events.length } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5872,
+        4624
+      ],
+      "id": "27312311-5350-4306-aafd-31fdd0a7be0c",
+      "name": "จับคู่ + สร้างแถว",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('เริ่มเขียน1').first().json.spreadsheetId }}/values:batchGet",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "ranges",
+              "value": "={{ \"'\" + $json.sheet + \"'!C1:C5000\" }}"
+            },
+            {
+              "name": "majorDimension",
+              "value": "COLUMNS"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6064,
+        4624
+      ],
+      "id": "97a3bc29-f3aa-46af-8aa0-99769fd859ff",
+      "name": "หาแถวล่าสุด",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        6272,
+        4624
+      ],
+      "id": "e2973732-969c-4553-8418-1b27c0e8920c",
+      "name": "รวม payload+แถว",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// อ่านจาก $json (Merge รวม payload + valueRanges) — เขียน A-O โดย \"แทรกแถวสรุปหลังข้อมูลของแต่ละรอบทันที\"\n// (นี่คือโค้ดที่สร้าง data/valueInputOption — คนละตัวกับ 'จับคู่ + สร้างแถว')\nconst p = $json;\nconst TARGET_ID = p.spreadsheetId;\nconst events = Array.isArray(p.events) ? p.events : [];\n\n// กันเคสไม่มีแถวข้อมูลเลย: ไม่เขียน ปล่อยไฟล์ค้างที่ 2-Processiong\nif (events.length === 0) {\n  return [{ json: { _skip_write:true, spreadsheetId:TARGET_ID, sheet:p.sheet,\n    note:\"ไม่มีแถวข้อมูลให้เขียน (events ว่าง)\" } }];\n}\n\nlet lastRow=0;\ntry { const vr=p.valueRanges; const col=(vr&&vr[0]&&vr[0].values&&vr[0].values[0])?vr[0].values[0]:[]; lastRow=col.length; } catch(e){}\nconst firstRow=Math.max(lastRow+1,4);   // หัวตาราง 3 แถวคงที่ -> ข้อมูลเริ่มแถว 4 เป็นอย่างน้อย (กันเคส C ถูก merge แนวตั้งทำให้นับ C ขาด 1)\nconst pr=String(p.date_iso).split(\"-\").map(Number); const yy=pr[0],mo=pr[1],dd=pr[2];\nfunction timeF(t){ if(!t) return \"\"; const m=String(t).match(/(\\d{1,2}):(\\d{2})/); return m?(\"=TIME(\"+(+m[1])+\",\"+(+m[2])+\",0)\"):\"\"; }\nfunction cell(t){ return (t===\"-\") ? \"-\" : timeF(t); }   // รองรับ \"-\" ทั้งช่องปิด(E)และช่องเปิด(F)\nconst dictSheet=p.dictSheet; const hasDict=p.hasDict;\nfunction jF(r){ return hasDict ? (\"=XLOOKUP(I\"+r+\",'\"+dictSheet+\"'!B:B,'\"+dictSheet+\"'!C:C,\\\"\\\")\") : \"\"; }\n\n// จัดกลุ่ม events ตามรอบ (ต่อเนื่อง เพราะ 'จับคู่ + สร้างแถว' เรียงตามรอบมาแล้ว)\nconst groups=[];\nevents.forEach(ev=>{ const g=groups[groups.length-1]; if(g && g.round===ev.round){ g.items.push(ev); } else { groups.push({ round:ev.round, items:[ev] }); } });\n\nconst rows=[];               // ค่าที่จะเขียน (ต่อเนื่องเริ่มที่ firstRow)\nlet cur=firstRow;            // แถวชีตปัจจุบัน (1-based)\nconst summaryRows=[];        // เลขแถวสรุป (ไว้จัดรูปแบบ)\nconst dataSegments=[];       // ช่วงแถวข้อมูลของแต่ละรอบ (ไว้จัดรูปแบบเทา)\nconst noStopRows=[];         // เลขแถว \"เครื่องไม่หยุด\" (ไฮไลท์แดงพิเศษ A:O ยกเว้น G,H)\n\ngroups.forEach(g=>{\n  const gStart=cur;\n  g.items.forEach(ev=>{\n    const r=cur;\n    const _noStop=(ev.causeCode===\"เครื่องไม่หยุด\");\n    if(_noStop) noStopRows.push(r);\n    rows.push([\n      \"=IFERROR(IF(OR(E\"+r+\"=\\\"-\\\",F\"+r+\"=\\\"-\\\"),\\\"00:00\\\",IF(F\"+r+\"-E\"+r+\"<0,F\"+r+\"-E\"+r+\"+1,F\"+r+\"-E\"+r+\")),\\\"00:00\\\")\",\"=IF(A\"+r+\"=\\\"00:00\\\",0,A\"+r+\")\",\"=DATE(\"+yy+\",\"+mo+\",\"+dd+\")\",\n      ev.round, cell(ev.stop), cell(ev.start), \"=HOUR(A\"+r+\")\",\"=MINUTE(A\"+r+\")\",\n      ev.causeCode||\"\", ev.causeThai||\"\", ev.remedy||\"\", (_noStop?\"\":ev.seq),\n      \"=(G\"+r+\"*\"+p.rate.h+\")+(\"+p.rate.m+\"*H\"+r+\")\", \"\", ev.technician||\"\"\n    ]);\n    cur++;\n  });\n  const gEnd=cur-1;\n  dataSegments.push({ start:gStart, end:gEnd });\n  // ---- แถวสรุปของรอบนี้ วางต่อท้ายข้อมูลรอบนี้ \"ทันที\" ----\n  const sRow=cur;\n  summaryRows.push(sRow);\n  rows.push([\n    \"=SUM(A\"+gStart+\":A\"+gEnd+\")\",\"=IF(A\"+sRow+\"=\\\"00:00\\\",0,A\"+sRow+\")\",\n    \"วันที่ \"+p.date_disp+\" รอบ \"+g.round+\" รวมเวลาที่หายไปทั้งสิ้น\",\n    \"\",\"\",\"\",\"=HOUR(A\"+sRow+\")\",\"=MINUTE(A\"+sRow+\")\",\"\",\"\",\"\",\n    \"=COUNTA(L\"+gStart+\":L\"+gEnd+\")\",\"=SUM(M\"+gStart+\":M\"+gEnd+\")\",\"=M\"+sRow+\"*\"+p.rate.n,\"\"\n  ]);\n  cur++;\n});\n\nconst blockLastRow=cur-1;    // แถวสุดท้ายของบล็อก (แถวสรุปของรอบสุดท้าย)\n// ---- QUERY แยกต่อรอบ: แต่ละรอบมีสูตรของตัวเอง วางที่ \"แถวเริ่มข้อมูลของรอบนั้น\" (Q ต่อ segment) ----\nconst queryData = dataSegments.map((seg)=>({\n  range:\"'\"+p.sheet+\"'!Q\"+seg.start, majorDimension:\"ROWS\",\n  values:[[ \"=QUERY(A\"+seg.start+\":K\"+seg.end+\",\\\"select C, D, I, K, SUM(B), count(B) where D >= 1 group by C, D, I, K order by sum(B) desc\\\")\" ]]\n}));\n// ตำแหน่ง+ความสูงของแต่ละบล็อก Q (ไว้ให้ code_4 จัดรูปแบบทีละรอบ) — ความสูง = สาเหตุไม่ซ้ำของรอบนั้น + หัว 1\nconst qBlocks = dataSegments.map((seg,i)=>({\n  row: seg.start,\n  height: [...new Set((groups[i]?groups[i].items:[]).map(e=>e.causeCode))].length + 1\n}));\n\nreturn [{ json:{\n  spreadsheetId:TARGET_ID, valueInputOption:\"USER_ENTERED\",\n  data:[ { range:\"'\"+p.sheet+\"'!A\"+firstRow, majorDimension:\"ROWS\", values:rows }, ...queryData ],\n  _meta:{ sheet:p.sheet, firstRow, blockLastRow, dataSegments, summaryRows, qBlocks, noStopRows }\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6464,
+        4624
+      ],
+      "id": "dfb99e98-a3ad-483b-9b82-9ef8b7246887",
+      "name": "สร้างค่าเขียน",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('เริ่มเขียน1').first().json.spreadsheetId }}/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"valueInputOption\": $json.valueInputOption, \"data\": $json.data } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6672,
+        4624
+      ],
+      "id": "7f0b6e54-44ae-4d6f-a679-ae6c13c3bd68",
+      "name": "เขียนค่า",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('เริ่มเขียน1').first().json.spreadsheetId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "sheets.properties(sheetId,title)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6880,
+        4624
+      ],
+      "id": "2ed7c2c5-902e-470c-acb9-b10e7609f44a",
+      "name": "หา gid",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// สร้างคำสั่งจัดรูปแบบ: เทา \"ต่อช่วงข้อมูลแต่ละรอบ\" + แถวสรุปไฮไลท์แดงทั้งแถว (A:O) + merge C:F \"ต่อแถวสรุป\" + รูปแบบโซน Q-V\n// ใช้คู่กับ code_3 (interleaved): อ่าน _meta = { sheet, firstRow, blockLastRow, dataSegments[], summaryRows[], qBlocks[] }\n// FIX: ดึง \"สีเทาแถวข้อมูล\" จากแท็บ PF8/3 (แหล่งกลาง) แทนแถว 5 ของแท็บตัวเอง — กันเคส PF8/8 (แถว 5 ถูกทำสีแดงผิด) ทำให้แถวข้อมูลกลายเป็นแดง\nconst meta = $('สร้างค่าเขียน').first().json._meta;\nconst TARGET_ID = $('สร้างค่าเขียน').first().json.spreadsheetId;\n// ถ้า code_3 ข้ามการเขียน (events ว่าง) จะไม่มี _meta -> ข้ามการจัดรูปแบบ\nif (!meta) return [{ json: { _skip_format:true, note:\"ไม่มี _meta (อาจข้ามการเขียนเพราะไม่มีข้อมูล)\" } }];\n\nconst sheetName    = meta.sheet;\nconst dataSegments = meta.dataSegments || [];   // ช่วงแถวข้อมูลของแต่ละรอบ [{start,end}]\nconst summaryRows  = meta.summaryRows || [];    // เลขแถวสรุป (1 แถวต่อ 1 รอบ)\nconst firstRow     = meta.firstRow;\nconst blockLastRow = meta.blockLastRow;\n\n// หา gid ของแท็บปัจจุบัน (จาก node 'หา gid')\nlet gid = null;\ntry { for (const s of ($json.sheets||[])){ if (s.properties && s.properties.title === sheetName){ gid = s.properties.sheetId; break; } } } catch(e){}\nif (gid === null) return [{ json: { _error: \"หา gid ไม่เจอ: \"+sheetName, raw: $json } }];\n\n// หา gid ของแท็บต้นแบบ \"สีเทากลาง\" = PF8/3 (แถว 5 เทาถูกต้อง) ใช้เป็นแหล่ง format แถวข้อมูลให้ทุกแท็บ\n// -> กันเคสบางแท็บ (เช่น PF8/8) แถว 5 ถูกไฮไลท์ผิดเป็นสีแดง แล้วลามไปทับแถวข้อมูล\nlet grayGid = null;\ntry { for (const s of ($json.sheets||[])){ if (s.properties && s.properties.title === \"PF8/3\"){ grayGid = s.properties.sheetId; break; } } } catch(e){}\nif (grayGid === null) grayGid = gid;   // fallback: ถ้าไม่เจอ PF8/3 ใช้แท็บตัวเอง\n\nconst SRC_DATA = 5;   // แถวต้นแบบ data (พื้นเทา) — อ่านจากแท็บ PF8/3\nconst SRC_SUM  = 11;  // แถวต้นแบบ summary (พื้นชมพู) — อ่านจากแท็บตัวเอง\nconst COLS = 15;      // A..O\nconst requests = [];\n\n// (0) ล้าง merge เดิม \"ทั้งแถว (ทุกคอลัมน์)\" ของบล็อก -> ครอบ merge แนวนอนทุกความกว้าง ไม่มีทางตัดผ่าน (atomic ไม่ล้ม)\nrequests.push({ unmergeCells: { range: { sheetId: gid, startRowIndex: firstRow-1, endRowIndex: blockLastRow } } });\n\n// (1) เทา: ก๊อปสีเทาแถวข้อมูลจาก \"PF8/3 แถว 5\" (grayGid) ไปทับแถวข้อมูลแต่ละรอบของแท็บนี้\nfor (const seg of dataSegments){\n  requests.push({ copyPaste: {\n    source:      { sheetId: grayGid, startRowIndex: SRC_DATA-1, endRowIndex: SRC_DATA, startColumnIndex: 0, endColumnIndex: COLS },\n    destination: { sheetId: gid,     startRowIndex: seg.start-1, endRowIndex: seg.end, startColumnIndex: 0, endColumnIndex: COLS },\n    pasteType: \"PASTE_FORMAT\" } });\n}\n\n// (2) แถวสรุปแต่ละรอบ: ไฮไลท์แดงทั้งแถว (A:O) RGB(244,204,204) + merge C:F  (คงไว้ตามที่แก้ในโหนด)\nfor (const rowNo of summaryRows){\n  requests.push(\n    { copyPaste: {\n        source:      { sheetId: gid, startRowIndex: SRC_SUM-1, endRowIndex: SRC_SUM, startColumnIndex: 0, endColumnIndex: COLS },\n        destination: { sheetId: gid, startRowIndex: rowNo-1,   endRowIndex: rowNo,    startColumnIndex: 0, endColumnIndex: COLS },\n        pasteType: \"PASTE_FORMAT\" } },\n    { repeatCell: {\n        range: { sheetId: gid, startRowIndex: rowNo-1, endRowIndex: rowNo, startColumnIndex: 0, endColumnIndex: COLS },\n        cell: { userEnteredFormat: { backgroundColor: { red: 0.9569, green: 0.8, blue: 0.8 } } },\n        fields: \"userEnteredFormat.backgroundColor\" } },\n    { mergeCells: {\n        range: { sheetId: gid, startRowIndex: rowNo-1, endRowIndex: rowNo, startColumnIndex: 2, endColumnIndex: 6 },\n        mergeType: \"MERGE_ALL\" } }\n  );\n}\n\n// (3) รูปแบบโซน Q-V ต่อแต่ละบล็อก QUERY (แต่ละรอบ) — คัดจากต้นแบบ Q4:V10 ของแท็บตัวเอง\nconst qBlocks = meta.qBlocks || [];\nfor (const qb of qBlocks){\n  requests.push({ copyPaste: {\n    source:      { sheetId: gid, startRowIndex: 3, endRowIndex: 10, startColumnIndex: 16, endColumnIndex: 22 },\n    destination: { sheetId: gid, startRowIndex: qb.row-1, endRowIndex: (qb.row-1)+qb.height, startColumnIndex: 16, endColumnIndex: 22 },\n    pasteType: \"PASTE_FORMAT\" } });\n}\n\n// (4) แถว \"เครื่องไม่หยุด\": ไฮไลท์แดง RGB(224,102,102) ทับ A:O \"ยกเว้น G,H\"\nconst noStopRows = meta.noStopRows || [];\nfor (const rowNo of noStopRows){\n  requests.push(\n    { repeatCell: { range: { sheetId: gid, startRowIndex: rowNo-1, endRowIndex: rowNo, startColumnIndex: 0, endColumnIndex: 6 },\n        cell: { userEnteredFormat: { backgroundColor: { red: 0.8784, green: 0.4, blue: 0.4 } } },\n        fields: \"userEnteredFormat.backgroundColor\" } },\n    { repeatCell: { range: { sheetId: gid, startRowIndex: rowNo-1, endRowIndex: rowNo, startColumnIndex: 8, endColumnIndex: 15 },\n        cell: { userEnteredFormat: { backgroundColor: { red: 0.8784, green: 0.4, blue: 0.4 } } },\n        fields: \"userEnteredFormat.backgroundColor\" } },\n    { repeatCell: { range: { sheetId: gid, startRowIndex: rowNo-1, endRowIndex: rowNo, startColumnIndex: 8, endColumnIndex: 9 },\n        cell: { userEnteredFormat: { horizontalAlignment: \"CENTER\", textFormat: { bold: true } } },\n        fields: \"userEnteredFormat.horizontalAlignment,userEnteredFormat.textFormat.bold\" } }\n  );\n}\n\nreturn [{ json: { spreadsheetId: TARGET_ID, requests } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7072,
+        4624
+      ],
+      "id": "574983b9-0697-4d58-954d-814bb9c655f6",
+      "name": "สร้างคำสั่งจัดรูปแบบ",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('เริ่มเขียน1').first().json.spreadsheetId }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"requests\": $json.requests } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7264,
+        4624
+      ],
+      "id": "5ecffdac-6081-49f2-8940-69a6ac8d5154",
+      "name": "จัดรูปแบบ",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2144,
+        4752
+      ],
+      "id": "7dd7b377-b15a-4c13-88cb-877f943acc42",
+      "name": "วนทีละรูป"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Jgm_8wy58vdy8g2otJVqAvap0Xh1wwUc",
+          "mode": "id",
+          "cachedResultName": "2-Processiong"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        4752
+      ],
+      "id": "0bf54867-1683-4fbf-b145-5e6a56b81c8d",
+      "name": "ย้ายไป 2-Processing",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-ok",
+              "leftValue": "={{ Boolean($('เขียนค่า').first().json.spreadsheetId) && Boolean($('เตรียม + map').first().json._fileId) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        7472,
+        4624
+      ],
+      "id": "2ae1fa5a-f8cf-4bb1-980f-d664ac031878",
+      "name": "เขียนสำเร็จ?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-multi-c",
+              "leftValue": "={{ $json._is_multipart }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2576,
+        4768
+      ],
+      "id": "f9b3f952-834b-4b13-bb19-a8e0f72b9bbe",
+      "name": "ไฟล์ต่อกัน?"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('ตั้งค่า Spreadsheet1').first().json.stagingSheetId }}/values:batchGet?ranges={{ encodeURIComponent(\"'\" + $('ตั้งค่า Spreadsheet1').first().json.stagingTab + \"'!A1:E10000\") }}&majorDimension=ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2784,
+        4752
+      ],
+      "id": "6ee06384-0ec3-4ef4-b434-de597ca07254",
+      "name": "อ่าน staging",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cur=$('เตรียม + map').first().json;\nlet rows=[]; try{ rows=($json.valueRanges&&$json.valueRanges[0]&&$json.valueRanges[0].values)||[]; }catch(e){}\nlet sib=null, sibRow=null;\nfor(let i=0;i<rows.length;i++){ const r=rows[i]||[]; if(String(r[0]||'')===String(cur._base_key)){ sib={part_no:parseInt(r[1],10), file_id:r[2], payload:JSON.parse(r[3]||'{}')}; sibRow=i+1; break; } }\nif(sib){\n  const parts=[{no:cur._part_no,p:cur},{no:sib.part_no,p:sib.payload}].sort((a,b)=>a.no-b.no);\n  const base=parts[0].p;\n  const combined=(parts[0].p.rows||[]).concat(parts[1].p.rows||[]);\n  return [{ json: { ...base, rows:combined, _mp_complete:true, _fileId:cur._fileId, _sibling_fileId:sib.file_id, _sibling_row:sibRow, _base_key:cur._base_key, _is_multipart:true } }];\n} else {\n  return [{ json: { ...cur, _mp_complete:false } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2992,
+        4752
+      ],
+      "id": "6d3d10bd-8f8b-49a7-aaf6-77d079ee995e",
+      "name": "จับคู่ staging",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-pair-c",
+              "leftValue": "={{ $json._mp_complete }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3184,
+        4752
+      ],
+      "id": "29438765-82b0-431b-8d93-1cf5cfb5fd0c",
+      "name": "ครบคู่?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('ตั้งค่า Spreadsheet1').first().json.stagingSheetId }}/values/{{ encodeURIComponent(\"'\" + $('ตั้งค่า Spreadsheet1').first().json.stagingTab + \"'!A1\") }}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"values\": [[ $('เตรียม + map').first().json._base_key, $('เตรียม + map').first().json._part_no, $('เตรียม + map').first().json._fileId, JSON.stringify($('เตรียม + map').first().json), $now.toISO() ]] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3456,
+        4816
+      ],
+      "id": "50bab25b-d8ce-44da-867c-31b7d2f82f22",
+      "name": "เขียน staging",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3456,
+        4608
+      ],
+      "id": "a3fc962e-07df-4793-819c-eb450d33c007",
+      "name": "payload พร้อมเขียน",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-cleanup-c",
+              "leftValue": "={{ $('เตรียม + map').first().json._is_multipart }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        7904,
+        4608
+      ],
+      "id": "9b487c0e-3fd9-428e-9c81-9a787d0e9d0f",
+      "name": "เก็บกวาดคู่?"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('จับคู่ staging').first().json._sibling_fileId }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1f1YphkW8yrz__EV37sPv5ScFdxoGHDDE",
+          "mode": "id",
+          "cachedResultName": "trash"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8112,
+        4592
+      ],
+      "id": "a61e244b-16fa-4fff-8239-4ddaf76c0af4",
+      "name": "ย้าย sibling ไป trash",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('ตั้งค่า Spreadsheet1').first().json.stagingSheetId }}/values:batchClear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"ranges\": [ \"'\" + $('ตั้งค่า Spreadsheet1').first().json.stagingTab + \"'!A\" + $('จับคู่ staging').first().json._sibling_row + \":E\" + $('จับคู่ staging').first().json._sibling_row ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8320,
+        4592
+      ],
+      "id": "56e13ced-d052-4741-bb4b-521c2a948e29",
+      "name": "ล้างแถว staging",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('เตรียม + map').first().json._fileId }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1f1YphkW8yrz__EV37sPv5ScFdxoGHDDE",
+          "mode": "id",
+          "cachedResultName": "trash"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        7696,
+        4608
+      ],
+      "id": "3622170e-717e-4bea-8259-04ca970e1892",
+      "name": "ย้ายไป trash1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ss-map",
+              "name": "sheetMapJson",
+              "value": "{\"2026-06\":\"1O3txiGweuVgRfo2E_zQti98MHMpBrVNrsv4HfeMwjAE\"}",
+              "type": "string"
+            },
+            {
+              "id": "ss-def",
+              "name": "defaultSheetId",
+              "value": "1O3txiGweuVgRfo2E_zQti98MHMpBrVNrsv4HfeMwjAE",
+              "type": "string"
+            },
+            {
+              "id": "ss-tpl",
+              "name": "templateId",
+              "value": "1vIpfOoUNmJrQcaYY3Ux_ukoIsJgmJVeembiwuOqrHE8",
+              "type": "string"
+            },
+            {
+              "id": "ss-out",
+              "name": "outputFolderId",
+              "value": "1FXC4I4FftY3IU8wic-Q_GSSM9l85pKhE",
+              "type": "string"
+            },
+            {
+              "id": "ss-stg",
+              "name": "stagingSheetId",
+              "value": "1EtgJOrDEU5cE-fBPABRYfj6S4DmOtsZNVKeCFPiW2Dc",
+              "type": "string"
+            },
+            {
+              "id": "ss-stgtab",
+              "name": "stagingTab",
+              "value": "Sheet1",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1936,
+        4752
+      ],
+      "id": "067eb6fd-5fc3-487e-a500-450878c129db",
+      "name": "ตั้งค่า Spreadsheet1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-resolve-c",
+              "leftValue": "={{ $json._need_resolve }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3696,
+        4608
+      ],
+      "id": "d3a6f591-ce68-4f26-9c00-ffc2c84602b0",
+      "name": "หา/สร้าง sheet?1"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/drive/v3/files?q={{ encodeURIComponent(\"name = '\" + $('เตรียม + map').first().json._monthTitle + \"' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false\") }}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3920,
+        4608
+      ],
+      "id": "c450faa0-23e3-4277-aa75-9f8d97ef9132",
+      "name": "ค้นหาไฟล์เดือน1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const files=($json.files)||[];\nconst title=$('เตรียม + map').first().json._monthTitle;\nconst hit=files.find(f=>f.name===title)||files[0]||null;\nconst foundId=hit?hit.id:null;\nreturn [{ json: { ...$('payload พร้อมเขียน').first().json, spreadsheetId: foundId, _need_create: !foundId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4128,
+        4608
+      ],
+      "id": "10fc0bee-ce7d-474b-ad52-6aa47db445bd",
+      "name": "ตัดสิน ID1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-create-c",
+              "leftValue": "={{ $json._need_create }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4352,
+        4608
+      ],
+      "id": "7fe4ab5c-d8ea-4dc5-9ce5-f3115c5b7810",
+      "name": "สร้างใหม่?1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $('ตั้งค่า Spreadsheet1').first().json.templateId }}/copy?supportsAllDrives=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"name\": $('เตรียม + map').first().json._monthTitle, \"parents\": [$('ตั้งค่า Spreadsheet1').first().json.outputFolderId] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4624,
+        4592
+      ],
+      "id": "eb1ac3db-1086-47b0-bad5-34cc340a63d1",
+      "name": "คัดลอก template1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('คัดลอก template1').first().json.id }}/values:batchClear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"ranges\": [\"'PF8/3'!A4:V2000\",\"'PF8/5'!A4:V2000\",\"'PF8/6'!A4:V2000\",\"'PF8/7'!A4:V2000\",\"'PF8/8'!A4:V2000\",\"'ASB250/3'!A4:V2000\",\"'TE'!A4:V2000\",\"'KM175'!A4:V2000\",\"'NB40'!A4:V2000\"] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4848,
+        4592
+      ],
+      "id": "e91a0df6-dc0d-4be0-8761-bab116f82e7c",
+      "name": "ล้างข้อมูล (batchClear)1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const newId=$('คัดลอก template1').first().json.id;\nreturn [{ json: { ...$('payload พร้อมเขียน').first().json, spreadsheetId: newId, _created:true } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5040,
+        4592
+      ],
+      "id": "9f2eb0d2-69c4-4e23-9304-a5c30a0a4134",
+      "name": "ระบุ id ใหม่1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5264,
+        4624
+      ],
+      "id": "b9c6e735-798c-497d-8be7-240c3b4f55a0",
+      "name": "เริ่มเขียน1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// ======================================================\n// อ่าน metadata จาก \"ดาวน์โหลดรูป\"\n// เพราะ node นี้มี id / name / mimeType ของไฟล์จริง\n// และอยู่ก่อน OCR โดยตรง\n// ======================================================\n\nlet sourceFiles = [];\n\ntry {\n  sourceFiles = $('ดาวน์โหลดรูป').all();\n} catch (e) {\n  sourceFiles = [];\n}\n\nconst THAI_MONTHS = [\n  null,\n  'มกราคม',\n  'กุมภาพันธ์',\n  'มีนาคม',\n  'เมษายน',\n  'พฤษภาคม',\n  'มิถุนายน',\n  'กรกฎาคม',\n  'สิงหาคม',\n  'กันยายน',\n  'ตุลาคม',\n  'พฤศจิกายน',\n  'ธันวาคม'\n];\n\nfunction extractRawText(j) {\n  if (\n    j.content &&\n    j.content.parts &&\n    j.content.parts[0] &&\n    typeof j.content.parts[0].text === 'string'\n  ) {\n    return j.content.parts[0].text;\n  }\n\n  if (typeof j.text === 'string') {\n    return j.text;\n  }\n\n  if (\n    j.candidates &&\n    j.candidates[0] &&\n    j.candidates[0].content &&\n    j.candidates[0].content.parts &&\n    j.candidates[0].content.parts[0] &&\n    typeof j.candidates[0].content.parts[0].text === 'string'\n  ) {\n    return j.candidates[0].content.parts[0].text;\n  }\n\n  return JSON.stringify(j);\n}\n\nfunction cleanJsonText(raw) {\n  let clean = String(raw || '').trim();\n\n  const fenced = clean.match(\n    /```(?:json)?\\s*([\\s\\S]*?)\\s*```/i\n  );\n\n  if (fenced && fenced[1]) {\n    clean = fenced[1].trim();\n  }\n\n  return clean\n    .replace(/^```(?:json)?/i, '')\n    .replace(/```$/i, '')\n    .trim();\n}\n\nconst out = [];\n\nfor (let idx = 0; idx < items.length; idx++) {\n  const j = items[idx].json || {};\n\n  // --------------------------------------------------\n  // 1. File metadata\n  // --------------------------------------------------\n  let fileId = null;\n  let fileName = null;\n  let mimeType = null;\n\n  try {\n    const src = sourceFiles[idx];\n\n    if (src && src.json) {\n      fileId = src.json.id || null;\n      fileName = src.json.name || null;\n      mimeType = src.json.mimeType || null;\n    }\n  } catch (e) {}\n\n  const extension =\n    fileName && fileName.includes('.')\n      ? fileName.split('.').pop().toLowerCase()\n      : null;\n\n  const file = {\n    id: fileId,\n    name: fileName,\n    extension,\n    mime_type: mimeType,\n    drive_link: fileId\n      ? `https://drive.google.com/file/d/${fileId}/view`\n      : null\n  };\n\n  // --------------------------------------------------\n  // 2. Raw OCR text\n  // --------------------------------------------------\n  const raw = extractRawText(j);\n\n  let parsed = null;\n  let ocrError = null;\n\n  try {\n    parsed = JSON.parse(\n      cleanJsonText(raw)\n    );\n  } catch (e) {\n    ocrError = e.message;\n  }\n\n  // --------------------------------------------------\n  // 3. OCR structured object\n  // --------------------------------------------------\n  const ocr = parsed\n    ? {\n        machine_raw:\n          parsed.machine_raw ?? null,\n\n        product:\n          parsed.product ?? null,\n\n        date:\n          parsed.date ?? null,\n\n        rows:\n          Array.isArray(parsed.rows)\n            ? parsed.rows\n            : [],\n\n        round_summary_note:\n          parsed.round_summary_note ?? null\n      }\n    : null;\n\n  // --------------------------------------------------\n  // 4. วันที่จาก filename YYYYMMDD\n  //\n  // รองรับ:\n  // 015_20260703_3.JPG\n  // 015_20260703_2#1.JPG\n  // 015_20260703_2#2.JPG\n  // 20260703 PF8-5.jpg\n  // scan-20260703-PF8-5.jpg\n  // --------------------------------------------------\n  const dateMatch =\n    String(fileName || '').match(\n      /(?:^|[^0-9])(20\\d{2})(\\d{2})(\\d{2})(?:[^0-9]|$)/\n    );\n\n  let docDateIso = null;\n  let docMonthTitle = null;\n\n  if (dateMatch) {\n    const yearCE =\n      parseInt(dateMatch[1], 10);\n\n    const month =\n      parseInt(dateMatch[2], 10);\n\n    const day =\n      parseInt(dateMatch[3], 10);\n\n    if (\n      month >= 1 &&\n      month <= 12 &&\n      day >= 1 &&\n      day <= 31\n    ) {\n      docDateIso =\n        `${yearCE}-` +\n        `${String(month).padStart(2, '0')}-` +\n        `${String(day).padStart(2, '0')}`;\n\n      const yearBE =\n        yearCE + 543;\n\n      docMonthTitle =\n        `รายงาน ประจำเดือน ` +\n        `${THAI_MONTHS[month]} ` +\n        `${yearBE}`;\n    }\n  }\n\n  // --------------------------------------------------\n  // 5. Lookup readiness\n  // เช็กเฉพาะสิ่งที่จำเป็นจริง\n  // --------------------------------------------------\n  const machineRaw =\n    String(\n      ocr?.machine_raw || ''\n    ).trim();\n\n  const canAlarmLookup = Boolean(\n    machineRaw &&\n    docDateIso\n  );\n\n  // --------------------------------------------------\n  // 6. Output\n  // --------------------------------------------------\n  out.push({\n    json: {\n      file,\n\n      ocr,\n\n      ocr_raw_text: raw,\n\n      ocr_error: ocrError,\n\n      _doc_date_iso:\n        docDateIso,\n\n      _doc_month_title:\n        docMonthTitle,\n\n      _can_alarm_lookup:\n        canAlarmLookup,\n\n      // debug ชั่วคราว\n      _alarm_lookup_check: {\n        source_file_count:\n          sourceFiles.length,\n\n        source_index:\n          idx,\n\n        has_file:\n          Boolean(fileName),\n\n        file_name:\n          fileName,\n\n        has_ocr:\n          Boolean(ocr),\n\n        machine_raw:\n          machineRaw || null,\n\n        has_filename_date:\n          Boolean(docDateIso),\n\n        doc_date_iso:\n          docDateIso,\n\n        doc_month_title:\n          docMonthTitle,\n\n        ocr_error:\n          ocrError\n      }\n    }\n  });\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        5264
+      ],
+      "id": "216c045e-b37e-46b0-a790-51139c8b4d0c",
+      "name": "เตรียม Export JSON",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2016,
+        5264
+      ],
+      "id": "ef92ad9a-4a56-4f90-ba7f-aecd5a0fda1c",
+      "name": "วน Export ทีละเอกสาร"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1uAEiphonPW8O_BBXmNhUV9wHqK91CuczFLPll3o4AcU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "1574214639",
+          "mode": "id"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "ชื่อเอกสาร",
+              "lookupValue": "={{ $json._doc_month_title }}"
+            }
+          ]
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRangeA1",
+              "range": "D:F"
+            }
+          },
+          "outputFormatting": {
+            "values": {
+              "general": "FORMATTED_VALUE",
+              "date": "FORMATTED_STRING"
+            }
+          },
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2288,
+        5344
+      ],
+      "id": "2db0d418-5760-4571-85e5-77ce8c1794df",
+      "name": "อ่าน Main Log รายเดือน",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2544,
+        5264
+      ],
+      "id": "6ba29e49-48cc-481c-8ae8-bb620e6e57c4",
+      "name": "รวม Payload + Main Log"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = { ...$json };\n\n// Main Sheet อ่านเฉพาะ D:F ดังนั้น \"รหัสเอกสาร\" ใน payload นี้คือคอลัมน์ F\n// รองรับทั้งค่า ID ตรง ๆ และ URL ที่มี Spreadsheet ID\nconst raw = String(p['รหัสเอกสาร'] ?? '').trim();\n\nlet spreadsheetId = null;\n\nif (raw) {\n  const direct = raw.match(/^[a-zA-Z0-9_-]{20,}$/);\n  if (direct) {\n    spreadsheetId = direct[0];\n  } else {\n    const inUrl = raw.match(/\\/spreadsheets\\/d\\/([a-zA-Z0-9_-]{20,})/);\n    if (inUrl) spreadsheetId = inUrl[1];\n  }\n}\n\nreturn [{\n  json: {\n    ...p,\n    _alarm_spreadsheet_id: spreadsheetId,\n    _alarm_found: Boolean(spreadsheetId)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2784,
+        5264
+      ],
+      "id": "4eab92a6-4acd-4e2c-a801-36bd560aef1a",
+      "name": "ระบุ Spreadsheet Alarm"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "found-alarm-sheet",
+              "leftValue": "={{ Boolean($json._alarm_found) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3024,
+        5264
+      ],
+      "id": "92d0367e-2f69-4c02-864a-ed68e4f84902",
+      "name": "พบ Spreadsheet รายเดือน?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all()\n  .map(item => item.json || {})\n  .filter(r => {\n    const dt = r['วันที่ / เวลา'];\n    const alarm = r['Alarm'] ?? r['Alerm'];\n    const machine = r['เครื่อง'];\n    const date = r['วันที่'];\n\n    return Boolean(dt || alarm || machine || date);\n  })\n  .map(r => ({\n    'วันที่': r['วันที่'] ?? null,\n    'วันที่ / เวลา': r['วันที่ / เวลา'] ?? null,\n    'เครื่อง': r['เครื่อง'] ?? null,\n    'Alarm': r['Alarm'] ?? r['Alerm'] ?? null\n  }));\n\nreturn [{\n  json: {\n    _alarm_rows: rows\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3536,
+        5184
+      ],
+      "id": "84c1659b-485b-4d0b-9391-0a634259e398",
+      "name": "รวม Alarm rows"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        3776,
+        5264
+      ],
+      "id": "3cb6aa35-20a6-4c06-8801-74807335406e",
+      "name": "รวม Payload + Alarm"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    ...$json,\n    _alarm_rows: []\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3296,
+        5424
+      ],
+      "id": "149b722e-4d87-426a-a603-9b5885593945",
+      "name": "ไม่มี Spreadsheet Alarm"
+    },
+    {
+      "parameters": {
+        "jsCode": "const FOLDER_ID = \"1sD9jUev1ckelN45BKb0aqH5aacgktk2C\";\n\nconst p = $json || {};\n\nconst file = p.file || {\n  id: null,\n  name: null,\n  extension: null,\n  mime_type: null,\n  drive_link: null\n};\n\nlet ocr = null;\n\nif (p.ocr) {\n  const sourceRows = Array.isArray(p.ocr.rows)\n    ? p.ocr.rows\n    : [];\n\n  ocr = {\n    machine_raw: p.ocr.machine_raw ?? null,\n    product: p.ocr.product ?? null,\n    date: p.ocr.date ?? null,\n\n    rows: sourceRows.map(r => ({\n      no: r.no ?? null,\n      stop: r.stop ?? null,\n      start: r.start ?? null,\n      duration_text: r.duration_text ?? null,\n      \"cause(human)\": r.cause ?? null,\n      \"cause(machine)\": r.cause_machine ?? null,\n      remedy: r.remedy ?? null,\n      operator: r.operator ?? null,\n      technician: r.technician ?? null\n    })),\n\n    round_summary_note:\n      p.ocr.round_summary_note ?? null\n  };\n}\n\nconst doc = {\n  file,\n  ocr,\n  ocr_raw_text: p.ocr_raw_text ?? null,\n  ocr_error: p.ocr_error ?? null,\n  meta: {\n    exported_at: (() => {\n      try {\n        return $now.toISO();\n      } catch (e) {\n        return new Date().toISOString();\n      }\n    })(),\n    source_workflow: \"tpi-ocr-docs-015\",\n    form: \"FM-DBM-015\"\n  }\n};\n\nconst rawName =\n  file.name ||\n  `doc-${file.id || Date.now()}`;\n\nconst baseName =\n  String(rawName).replace(/\\.[^.]+$/, '');\n\nconst outName = `${baseName}.json`;\n\nconst content = JSON.stringify(doc, null, 2);\n\nconst boundary =\n  \"n8njson\" +\n  Date.now() +\n  Math.floor(Math.random() * 1000000);\n\nconst metadata = {\n  name: outName,\n  parents: [FOLDER_ID],\n  mimeType: \"application/json\"\n};\n\nconst body =\n  \"--\" + boundary + \"\\r\\n\" +\n  \"Content-Type: application/json; charset=UTF-8\\r\\n\\r\\n\" +\n  JSON.stringify(metadata) + \"\\r\\n\" +\n  \"--\" + boundary + \"\\r\\n\" +\n  \"Content-Type: application/json; charset=UTF-8\\r\\n\\r\\n\" +\n  content + \"\\r\\n\" +\n  \"--\" + boundary + \"--\";\n\nreturn [{\n  json: {\n    _out_name: outName,\n    _boundary: boundary,\n    _upload_body: body\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4288,
+        5264
+      ],
+      "id": "a109884d-ddda-4c8c-a682-fc54223a224a",
+      "name": "สร้าง JSON Export"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "=multipart/related; boundary={{ $json._boundary }}",
+        "body": "={{ $json._upload_body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4528,
+        5264
+      ],
+      "id": "84265d46-0327-4e7d-9d7b-1a01d1d94406",
+      "name": "อัปโหลด JSON Export",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json._alarm_spreadsheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "เครื่อง",
+              "lookupValue": "={{ $json.ocr.machine_raw }}"
+            }
+          ]
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange",
+              "headerRow": 2,
+              "firstDataRow": 3
+            }
+          },
+          "outputFormatting": {
+            "values": {
+              "general": "FORMATTED_VALUE",
+              "date": "FORMATTED_STRING"
+            }
+          },
+          "returnFirstMatch": false
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3296,
+        5184
+      ],
+      "id": "1a79d60b-3100-469a-a057-ea012dbe5c95",
+      "name": "อ่าน Alarm Sheet2",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Nqn1eNQP239vZoe2",
+          "name": "serv-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = { ...$json };\n\nif (!p.ocr || !Array.isArray(p.ocr.rows)) {\n  return [{ json: p }];\n}\n\nconst docDateIso = String(p._doc_date_iso || '').trim();\nconst targetMachine = String(p.ocr.machine_raw || '').trim().toUpperCase();\n\nfunction normalizeYear(y, targetYear) {\n  let n = parseInt(y, 10);\n  if (!Number.isFinite(n)) return null;\n\n  if (n >= 2400) return n - 543;\n\n  if (n < 100) {\n    if (Number.isFinite(targetYear) && n === targetYear % 100) {\n      return targetYear;\n    }\n\n    if (\n      Number.isFinite(targetYear) &&\n      n === (targetYear + 543) % 100\n    ) {\n      return targetYear;\n    }\n\n    return 2000 + n;\n  }\n\n  return n;\n}\n\nfunction parseDateIso(v) {\n  const s = String(v ?? '').trim();\n  const m = s.match(/(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{2,4})/);\n\n  if (!m) return null;\n\n  const targetYear = parseInt(docDateIso.slice(0, 4), 10);\n  const day = parseInt(m[1], 10);\n  const month = parseInt(m[2], 10);\n  const year = normalizeYear(m[3], targetYear);\n\n  if (\n    !Number.isFinite(year) ||\n    day < 1 || day > 31 ||\n    month < 1 || month > 12\n  ) {\n    return null;\n  }\n\n  return (\n    `${year}-` +\n    `${String(month).padStart(2, '0')}-` +\n    `${String(day).padStart(2, '0')}`\n  );\n}\n\nfunction parseTimeMin(v) {\n  const s = String(v ?? '').trim();\n  const matches = [...s.matchAll(/(\\d{1,2}):(\\d{2})(?::\\d{2})?/g)];\n\n  if (!matches.length) return null;\n\n  const m = matches[matches.length - 1];\n  const h = parseInt(m[1], 10);\n  const min = parseInt(m[2], 10);\n\n  if (\n    h < 0 || h > 23 ||\n    min < 0 || min > 59\n  ) {\n    return null;\n  }\n\n  return h * 60 + min;\n}\n\nconst alarmRows = Array.isArray(p._alarm_rows)\n  ? p._alarm_rows\n  : [];\n\nconst candidates = [];\n\nfor (let i = 0; i < alarmRows.length; i++) {\n  const r = alarmRows[i] || {};\n\n  const rowMachine = String(r['เครื่อง'] ?? '')\n    .trim()\n    .toUpperCase();\n\n  if (rowMachine !== targetMachine) continue;\n\n  const dateFromDateCol = parseDateIso(r['วันที่']);\n  const dateFromDateTime = parseDateIso(r['วันที่ / เวลา']);\n  const rowDateIso = dateFromDateCol || dateFromDateTime;\n\n  if (rowDateIso !== docDateIso) continue;\n\n  const alarmTimeMin = parseTimeMin(r['วันที่ / เวลา']);\n  if (alarmTimeMin === null) continue;\n\n  const alarmText = String(r['Alarm'] ?? '').trim();\n  if (!alarmText) continue;\n\n  candidates.push({\n    time_min: alarmTimeMin,\n    alarm: alarmText,\n    source_index: i\n  });\n}\n\nconst enrichedRows = p.ocr.rows.map(row => {\n  const stopMin = parseTimeMin(row.stop);\n\n  let machineCause = null;\n\n  if (stopMin !== null) {\n    let best = null;\n    let bestDiff = Infinity;\n\n    for (const c of candidates) {\n      const diff = Math.abs(stopMin - c.time_min);\n\n      if (diff > 1) continue;\n\n      // ถ้าระยะเท่ากัน ให้เก็บรายการแรกตามลำดับใน Sheet1\n      if (diff < bestDiff) {\n        best = c;\n        bestDiff = diff;\n      }\n    }\n\n    if (best) {\n      machineCause = best.alarm;\n    }\n  }\n\n  return {\n    ...row,\n    cause_machine: machineCause\n  };\n});\n\nreturn [{\n  json: {\n    ...p,\n    ocr: {\n      ...p.ocr,\n      rows: enrichedRows\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4048,
+        5264
+      ],
+      "id": "196cc61c-c639-4435-885a-39a987067369",
+      "name": "เติม cause(machine)1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        4400
+      ],
+      "id": "7f816a9c-a64b-4d9a-bf5c-8a64bac568a9",
+      "name": "Schedule Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ระบุชื่อ Node ที่ต้องการคำนวณ\nconst geminiNodes = [\n  'OCR: อ่านฟอร์ม'\n];\n\n// 1. ตารางราคา (USD ต่อ 1 ล้าน Tokens)\n// เงื่อนไข: เฉพาะ Text Output และ Prompt <= 200,000 Tokens \nconst pricing = {\n  \"gemini-3.5-flash\": { input: 1.5, output: 8.3 },\n  // ตระกูล Gemini 3.1 (รุ่นใหม่ล่าสุด)\n  \"gemini-3.1-pro\": { input: 2.00, output: 12.00 },\n  \"gemini-3.1-flash\": { input: 0.50, output: 3.00 },\n  \"gemini-3.1-flash-lite\": { input: 0.25, output: 1.50 },\n  \n  // ตระกูล Gemini 2.5\n  \"gemini-2.5-pro\": { input: 1.25, output: 10.00 },\n  \"gemini-2.5-flash\": { input: 0.30, output: 2.50 },\n  \"gemini-2.5-flash-lite\": { input: 0.10, output: 0.40 },\n\n  // Default สำรองไว้กรณีหาชื่อรุ่นไม่เจอ (อิงเรทกลางๆ ของ 2.5 Flash)\n  \"default\": { input: 0.30, output: 2.50 } \n};\n\nlet grandTotalUsd = 0;\nlet totalInputAll = 0;\nlet totalOutputAll = 0;\n\n// Object สำหรับเก็บสรุปยอดแยกตามโมเดล\nlet summaryByModel = {};\n\n// 2. วนลูปดึงข้อมูลจากแต่ละ Node\nfor (const nodeName of geminiNodes) {\n  try {\n    const nodeData = $node[nodeName].json;\n    const meta = nodeData.usageMetadata;\n    \n    // ดึงชื่อรุ่นจาก API ถ้าไม่มีให้ใช้ \"default\"\n    let rawModelVersion = nodeData.modelVersion || \"default\";\n    let matchedModel = \"default\";\n    let rate = \n      [\"default\"];\n\n    // ใช้การเช็กคำ (includes) เพื่อรองรับชื่อ API ที่มี suffix ต่อท้าย เช่น \"gemini-2.5-pro-preview\"\n    for (const key in pricing) {\n      if (rawModelVersion.includes(key)) {\n        matchedModel = key;\n        rate = pricing[key];\n        break; // เจอชื่อที่ตรงกันแล้วหยุดหา\n      }\n    }\n\n    if (meta) {\n      const inputTokens = meta.promptTokenCount || 0;\n      // รวม Candidates (คำตอบปกติ) และ Thoughts (การคิดวิเคราะห์) เข้าเป็น Output ก้อนเดียว\n      const outputTokens = (meta.candidatesTokenCount || 0) + (meta.thoughtsTokenCount || 0);\n      \n      // 3. คำนวณราคา Node ปัจจุบัน\n      const nodeCostUsd = (inputTokens * (rate.input / 1000000)) + (outputTokens * (rate.output / 1000000));\n      \n      grandTotalUsd += nodeCostUsd;\n      totalInputAll += inputTokens;\n      totalOutputAll += outputTokens;\n\n      // บันทึกสถิติสะสมแยกตามรุ่นโมเดล\n      if (!summaryByModel[matchedModel]) {\n        summaryByModel[matchedModel] = {\n          total_tokens: 0,\n          cost_usd: 0\n        };\n      }\n      summaryByModel[matchedModel].total_tokens += (inputTokens + outputTokens);\n      summaryByModel[matchedModel].cost_usd += nodeCostUsd;\n    }\n  } catch (e) {\n    // ข้าม Node ที่รันไม่ผ่านหรือไม่พบ\n  }\n}\n\n// 4. สรุปเป็นเงินบาท (ใช้เรท 33 บาท/ดอลลาร์)\nconst grandTotalThb = grandTotalUsd * 33 + 1;\n\n// จัดรูปแบบทศนิยมให้สวยงามสำหรับ Output\nfor (const model in summaryByModel) {\n  const modelCostUsd = summaryByModel[model].cost_usd;\n  summaryByModel[model].cost_thb = (modelCostUsd * 33).toFixed(4) + \" บาท\";\n  summaryByModel[model].cost_usd = modelCostUsd.toFixed(6);\n}\n\n// 5. ส่งค่าออกไปแสดงผล\nreturn {\n  summary: {\n    total_tokens_used: totalInputAll + totalOutputAll,\n    tokens_breakdown: {\n      input: totalInputAll,\n      output_including_thoughts: totalOutputAll\n    },\n    cost_by_model: summaryByModel,\n    grand_total: {\n      usd: grandTotalUsd.toFixed(6),\n      thb: grandTotalThb.toFixed(4) + \" บาท\"\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        4512
+      ],
+      "id": "a05715de-c69e-43ce-9133-a35ca9c22654",
+      "name": "cal-cost1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1leh-GfkjJvKnLI7O3tsim13bREPQVH2nG0AbzV_a3Qk",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "model-cost",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1leh-GfkjJvKnLI7O3tsim13bREPQVH2nG0AbzV_a3Qk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Total Tokens": "={{ $json.summary.total_tokens_used }}",
+            "Total Cost (THB)": "={{ $json.summary.grand_total.thb }}",
+            "Model Breakdown": "={{ $json.summary.tokens_breakdown }}",
+            "Output Tokens": "={{ $json.summary.tokens_breakdown.output_including_thoughts }}",
+            "Prompt Tokens": "={{ $json.summary.tokens_breakdown.input }}",
+            "Raw JSON": "={{ $json.summary }}",
+            "docs": "015"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Tokens",
+              "displayName": "Total Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Cost (THB)",
+              "displayName": "Total Cost (THB)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Model Breakdown",
+              "displayName": "Model Breakdown",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Prompt Tokens",
+              "displayName": "Prompt Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Output Tokens",
+              "displayName": "Output Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Raw JSON",
+              "displayName": "Raw JSON",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "docs",
+              "displayName": "docs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1920,
+        4512
+      ],
+      "id": "a8a829c3-a824-4647-bcbd-b3dca48203c1",
+      "name": "add-cost-to-sheet1",
+      "alwaysOutputData": false,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer oi8iWesT6LfWpBeUiiGcl2MDqRoui2c1oWpH9NnOOcDvjqdeYV2hsvyLHOHmUQyFYDr35gOI93l7QKa6UMoKLbstEyfJHHoRJyi0LN71gl5bkM+I1R06GWOKbpjbYhflH6VZImk/9yh/S7Zl8wvG1wdB04t89/1O/w1cDnyilFU="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"to\": \"C306ebbefc8c3bcc6fc91816da248a3e9\", \"messages\": [ { \"type\": \"text\", \"text\": \"✅ FM-DQM-015 ทำงานเสร็จสมบูรณ์\\n\\nสถานะ: SUCCESS\\nExecution ID: \" + $execution.id + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') } ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2336,
+        4528
+      ],
+      "id": "78a8298a-dcaa-463a-ab06-fda61158ce04",
+      "name": "LINE - Workflow Success",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        752,
+        4048
+      ],
+      "id": "ec3d3185-f64e-4249-b4d1-d4b966d7cb30",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ntfy.sh/tpi-err-n8n-5697b86b-c202-46c6-aba0-132a5d5f1641",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "n8n Workflow Error"
+            },
+            {
+              "name": "Priority",
+              "value": "high"
+            },
+            {
+              "name": "Tags",
+              "value": "warning"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ \"❌ n8n Workflow Error\\n\\nWorkflow: \" + ($json.workflow?.name ?? \"FM-DQM-002\") + \"\\nNode: \" + ($json.execution?.lastNodeExecuted ?? \"Unknown\") + \"\\nError: \" + ($json.execution?.error?.message ?? $json.error?.message ?? \"Unknown error\") + \"\\nExecution ID: \" + ($json.execution?.id ?? \"-\") + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1024,
+        3888
+      ],
+      "id": "9544fdbd-65f3-403c-ba1a-b1be65265132",
+      "name": "err-ntfy",
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer oi8iWesT6LfWpBeUiiGcl2MDqRoui2c1oWpH9NnOOcDvjqdeYV2hsvyLHOHmUQyFYDr35gOI93l7QKa6UMoKLbstEyfJHHoRJyi0LN71gl5bkM+I1R06GWOKbpjbYhflH6VZImk/9yh/S7Zl8wvG1wdB04t89/1O/w1cDnyilFU="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"to\": \"C306ebbefc8c3bcc6fc91816da248a3e9\", \"messages\": [ { \"type\": \"text\", \"text\": \"❌ n8n Workflow Error\\n\\nWorkflow: \" + ($json.workflow?.name ?? \"FM-DQM-002\") + \"\\nNode: \" + ($json.execution?.lastNodeExecuted ?? \"Unknown\") + \"\\nError: \" + ($json.execution?.error?.message ?? $json.error?.message ?? \"Unknown error\") + \"\\nExecution ID: \" + ($json.execution?.id ?? \"-\") + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') } ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1024,
+        4048
+      ],
+      "id": "da2f8b9e-0ea8-4d78-9212-10e93b2dff8c",
+      "name": "err-line",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {
+    "Drive: ไฟล์ใหม่": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "fileExtension": "JPG",
+          "copyRequiresWriterPermission": false,
+          "md5Checksum": "84464a8baf438934021b9a44ba14fa85",
+          "writersCanShare": true,
+          "viewedByMe": true,
+          "mimeType": "image/jpeg",
+          "parents": [
+            "1ZV4RnW1enkfNUOvloThPtjoVyiyI41DK"
+          ],
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBN_opCR0xvyHF38o3NivZ7eDkKctJfh6-pMOd8s2eTb2Jyw4OZRAIxeMdMislfplDZKvobtCxXfMCR1p59oV5jBtQK5vKxWCpC_9FTQxbTOTKy9=s220",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/jpeg",
+          "shared": true,
+          "lastModifyingUser": {
+            "displayName": "Technical Sales Support and Service Team",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "05046041181200307860",
+            "emailAddress": "dts@thaipet.co.th",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Technical Sales Support and Service Team",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "05046041181200307860",
+              "emailAddress": "dts@thaipet.co.th",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+            }
+          ],
+          "headRevisionId": "0B3xfstlQMekiUkdXYUxiM1dHempzY2NqcUdROVlJaHpFM2I4PQ",
+          "webViewLink": "https://drive.google.com/file/d/1EIyRBUPCfi892bjc3dGYhnHQ8yvtffDq/view?usp=drivesdk",
+          "webContentLink": "https://drive.google.com/uc?id=1EIyRBUPCfi892bjc3dGYhnHQ8yvtffDq&export=download",
+          "size": "2467921",
+          "viewersCanCopyContent": true,
+          "permissions": [
+            {
+              "id": "05258815674678773289",
+              "displayName": "THAI PET INDUSTRIAL COMPANY LIMITED",
+              "type": "domain",
+              "kind": "drive#permission",
+              "role": "writer",
+              "allowFileDiscovery": false,
+              "domain": "thaipet.co.th"
+            },
+            {
+              "id": "10477682743254965050",
+              "displayName": "Customer Service Team",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a-/ALV-UjV8Zz6q3xbs8qvagBjL4eAr-rsCCiYPLZBE9aPHe5iKmTZVcWQSpQ=s64",
+              "emailAddress": "service@thaipet.co.th",
+              "role": "writer",
+              "deleted": false,
+              "pendingOwner": false
+            },
+            {
+              "id": "05046041181200307860",
+              "displayName": "Technical Sales Support and Service Team",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64",
+              "emailAddress": "dts@thaipet.co.th",
+              "role": "owner",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "hasThumbnail": true,
+          "spaces": [
+            "drive"
+          ],
+          "id": "1EIyRBUPCfi892bjc3dGYhnHQ8yvtffDq",
+          "name": "Copy of 015_20260707_3.JPG",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "createdTime": "2026-07-10T04:12:13.142Z",
+          "modifiedTime": "2026-07-10T04:12:13.142Z",
+          "modifiedByMeTime": "2026-07-10T04:12:13.142Z",
+          "viewedByMeTime": "2026-07-10T04:12:13.142Z",
+          "quotaBytesUsed": "2467921",
+          "version": "2",
+          "originalFilename": "Copy of 015_20260707_3.JPG",
+          "ownedByMe": true,
+          "fullFileExtension": "JPG",
+          "isAppAuthorized": false,
+          "capabilities": {
+            "canChangeViewersCanCopyContent": true,
+            "canEdit": true,
+            "canCopy": true,
+            "canComment": true,
+            "canAddChildren": false,
+            "canDelete": true,
+            "canDownload": true,
+            "canListChildren": false,
+            "canRemoveChildren": false,
+            "canRename": true,
+            "canTrash": true,
+            "canReadRevisions": true,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canMoveItemIntoTeamDrive": true,
+            "canUntrash": true,
+            "canModifyContent": true,
+            "canMoveItemOutOfDrive": true,
+            "canAddMyDriveParent": false,
+            "canRemoveMyDriveParent": true,
+            "canMoveItemWithinDrive": true,
+            "canShare": true,
+            "canMoveChildrenWithinDrive": false,
+            "canModifyContentRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canAcceptOwnership": false,
+            "canReadLabels": false,
+            "canModifyLabels": false,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canRemoveContentRestriction": false,
+            "canDisableInheritedPermissions": false,
+            "canEnableInheritedPermissions": true,
+            "canChangeItemDownloadRestriction": true,
+            "canStartApproval": true,
+            "canAccessViaGenAi": true
+          },
+          "thumbnailVersion": "1",
+          "modifiedByMe": true,
+          "permissionIds": [
+            "05258815674678773289",
+            "10477682743254965050",
+            "05046041181200307860"
+          ],
+          "imageMediaMetadata": {
+            "flashUsed": false,
+            "meteringMode": "Pattern",
+            "sensor": "One-chip color area",
+            "exposureMode": "Auto",
+            "whiteBalance": "Auto",
+            "width": 4032,
+            "height": 3024,
+            "location": {
+              "latitude": 13.683866666666667,
+              "longitude": 100.3693611111111,
+              "altitude": 2.9160376520735283
+            },
+            "rotation": 0,
+            "time": "2026:07:08 08:10:50",
+            "cameraMake": "Apple",
+            "cameraModel": "iPhone 15 Pro Max",
+            "exposureTime": 0.008264462,
+            "aperture": 1.78,
+            "focalLength": 6.765,
+            "isoSpeed": 50,
+            "exposureBias": 0
+          },
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "sha1Checksum": "c05d5d5800336924f1b2fc43ee9b92248801bb72",
+          "sha256Checksum": "24ecca3d939baf210e1ccc371076a235154a3661799525c0857b97eb381818f4",
+          "inheritedPermissionsDisabled": false,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "clientEncryptionDetails": {
+            "decryptionMetadata": {
+              "wrappedKey": "",
+              "kaclsId": "0",
+              "aes256GcmChunkSize": "unset",
+              "keyFormat": "unsetKeyFormat",
+              "encryptionResourceKeyHash": ""
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "ดาวน์โหลดรูป": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1EIyRBUPCfi892bjc3dGYhnHQ8yvtffDq",
+          "name": "Copy of 015_20260707_3.JPG",
+          "mimeType": "image/jpeg"
+        },
+        "binary": {
+          "data": {
+            "mimeType": "image/jpeg",
+            "fileType": "image",
+            "fileExtension": "JPG",
+            "data": "database",
+            "fileName": "Copy of 015_20260707_3.JPG",
+            "id": "database:4a67c6a4-8467-4709-bc7d-8d1ef6af7bff",
+            "fileSize": "2.47 MB",
+            "bytes": 2467921
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "OCR: อ่านฟอร์ม": [
+      {
+        "json": {
+          "content": {
+            "parts": [
+              {
+                "text": "```json\n{\n  \"machine_raw\": \"PF8/8\",\n  \"product\": \"ไทซัน 450 + ไดโซ 350\",\n  \"date\": {\n    \"day\": 7,\n    \"month\": 7,\n    \"year_be\": 69\n  },\n  \"rows\": [],\n  \"round_summary_note\": null\n}\n```",
+                "thoughtSignature": "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"
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "ย้ายไป 2-Processing": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1EIyRBUPCfi892bjc3dGYhnHQ8yvtffDq",
+          "name": "Copy of 015_20260707_3.JPG",
+          "mimeType": "image/jpeg"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Drive: ไฟล์ใหม่": {
+      "main": [
+        [
+          {
+            "node": "เป็นรูปภาพ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เป็นรูปภาพ?": {
+      "main": [
+        [
+          {
+            "node": "ย้ายไป 2-Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ดาวน์โหลดรูป": {
+      "main": [
+        [
+          {
+            "node": "OCR: อ่านฟอร์ม",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR: อ่านฟอร์ม": {
+      "main": [
+        [
+          {
+            "node": "แปลง JSON",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "เตรียม Export JSON",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "cal-cost1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "แปลง JSON": {
+      "main": [
+        [
+          {
+            "node": "ตั้งค่า Spreadsheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "▶ ทดสอบด้วย mock": {
+      "main": [
+        [
+          {
+            "node": "MOCK OCR (PF8/5)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MOCK OCR (PF8/5)": {
+      "main": [
+        [
+          {
+            "node": "ตั้งค่า Spreadsheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เตรียม + map": {
+      "main": [
+        [
+          {
+            "node": "ไฟล์ต่อกัน?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "โหลด dictionary": {
+      "main": [
+        [
+          {
+            "node": "รวม dict",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "รวม dict": {
+      "main": [
+        [
+          {
+            "node": "จับคู่ + สร้างแถว",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "จับคู่ + สร้างแถว": {
+      "main": [
+        [
+          {
+            "node": "หาแถวล่าสุด",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "รวม payload+แถว",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "หาแถวล่าสุด": {
+      "main": [
+        [
+          {
+            "node": "รวม payload+แถว",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "รวม payload+แถว": {
+      "main": [
+        [
+          {
+            "node": "สร้างค่าเขียน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้างค่าเขียน": {
+      "main": [
+        [
+          {
+            "node": "เขียนค่า",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เขียนค่า": {
+      "main": [
+        [
+          {
+            "node": "หา gid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "หา gid": {
+      "main": [
+        [
+          {
+            "node": "สร้างคำสั่งจัดรูปแบบ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้างคำสั่งจัดรูปแบบ": {
+      "main": [
+        [
+          {
+            "node": "จัดรูปแบบ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "จัดรูปแบบ": {
+      "main": [
+        [
+          {
+            "node": "เขียนสำเร็จ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "วนทีละรูป": {
+      "main": [
+        [
+          {
+            "node": "LINE - Workflow Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "เตรียม + map",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ย้ายไป 2-Processing": {
+      "main": [
+        [
+          {
+            "node": "ดาวน์โหลดรูป",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เขียนสำเร็จ?": {
+      "main": [
+        [
+          {
+            "node": "ย้ายไป trash1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "วนทีละรูป",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ไฟล์ต่อกัน?": {
+      "main": [
+        [
+          {
+            "node": "อ่าน staging",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "payload พร้อมเขียน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อ่าน staging": {
+      "main": [
+        [
+          {
+            "node": "จับคู่ staging",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "จับคู่ staging": {
+      "main": [
+        [
+          {
+            "node": "ครบคู่?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ครบคู่?": {
+      "main": [
+        [
+          {
+            "node": "payload พร้อมเขียน",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "เขียน staging",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เขียน staging": {
+      "main": [
+        [
+          {
+            "node": "วนทีละรูป",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "payload พร้อมเขียน": {
+      "main": [
+        [
+          {
+            "node": "หา/สร้าง sheet?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เก็บกวาดคู่?": {
+      "main": [
+        [
+          {
+            "node": "ย้าย sibling ไป trash",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "วนทีละรูป",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ย้าย sibling ไป trash": {
+      "main": [
+        [
+          {
+            "node": "ล้างแถว staging",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ล้างแถว staging": {
+      "main": [
+        [
+          {
+            "node": "วนทีละรูป",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ย้ายไป trash1": {
+      "main": [
+        [
+          {
+            "node": "เก็บกวาดคู่?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ตั้งค่า Spreadsheet1": {
+      "main": [
+        [
+          {
+            "node": "วนทีละรูป",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "หา/สร้าง sheet?1": {
+      "main": [
+        [
+          {
+            "node": "ค้นหาไฟล์เดือน1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "เริ่มเขียน1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ค้นหาไฟล์เดือน1": {
+      "main": [
+        [
+          {
+            "node": "ตัดสิน ID1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ตัดสิน ID1": {
+      "main": [
+        [
+          {
+            "node": "สร้างใหม่?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้างใหม่?1": {
+      "main": [
+        [
+          {
+            "node": "คัดลอก template1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "เริ่มเขียน1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "คัดลอก template1": {
+      "main": [
+        [
+          {
+            "node": "ล้างข้อมูล (batchClear)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ล้างข้อมูล (batchClear)1": {
+      "main": [
+        [
+          {
+            "node": "ระบุ id ใหม่1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ระบุ id ใหม่1": {
+      "main": [
+        [
+          {
+            "node": "เริ่มเขียน1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เริ่มเขียน1": {
+      "main": [
+        [
+          {
+            "node": "โหลด dictionary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "รวม dict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เตรียม Export JSON": {
+      "main": [
+        [
+          {
+            "node": "วน Export ทีละเอกสาร",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "วน Export ทีละเอกสาร": {
+      "main": [
+        [],
+        [
+          {
+            "node": "อ่าน Main Log รายเดือน",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "รวม Payload + Main Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อ่าน Main Log รายเดือน": {
+      "main": [
+        [
+          {
+            "node": "รวม Payload + Main Log",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "รวม Payload + Main Log": {
+      "main": [
+        [
+          {
+            "node": "ระบุ Spreadsheet Alarm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ระบุ Spreadsheet Alarm": {
+      "main": [
+        [
+          {
+            "node": "พบ Spreadsheet รายเดือน?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "พบ Spreadsheet รายเดือน?": {
+      "main": [
+        [
+          {
+            "node": "อ่าน Alarm Sheet2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "รวม Payload + Alarm",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ไม่มี Spreadsheet Alarm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "รวม Alarm rows": {
+      "main": [
+        [
+          {
+            "node": "รวม Payload + Alarm",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "รวม Payload + Alarm": {
+      "main": [
+        [
+          {
+            "node": "เติม cause(machine)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ไม่มี Spreadsheet Alarm": {
+      "main": [
+        [
+          {
+            "node": "เติม cause(machine)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "สร้าง JSON Export": {
+      "main": [
+        [
+          {
+            "node": "อัปโหลด JSON Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อัปโหลด JSON Export": {
+      "main": [
+        [
+          {
+            "node": "วน Export ทีละเอกสาร",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "อ่าน Alarm Sheet2": {
+      "main": [
+        [
+          {
+            "node": "รวม Alarm rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "เติม cause(machine)1": {
+      "main": [
+        [
+          {
+            "node": "สร้าง JSON Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cal-cost1": {
+      "main": [
+        [
+          {
+            "node": "add-cost-to-sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "err-line",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "err-ntfy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "f53c305e-8a03-4b9a-a79e-8cf7825d8f83",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b89bacf03b33df343a7dd9f17cf1721598896265238cfb8ad22fd7cae20c33a"
+  },
+  "id": "IgPtZ7fQdFy4szFR",
+  "tags": []
+}

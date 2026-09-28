@@ -1,0 +1,3781 @@
+{
+  "name": "FM-DQM-002 | Production Multi-File Stable",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1phh94zcuIV__rsbqew1nnh4EbJJ26NDP",
+          "mode": "id"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        96,
+        32
+      ],
+      "id": "8436d3ef-0370-4008-abd2-fbd9d761ab4e",
+      "name": "Google Drive Trigger",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "256f2b56-7704-4670-9d41-78d854c13fc6",
+              "leftValue": "={{ $json.originalFilename || $json.name || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        32
+      ],
+      "id": "d0f8ccfa-edba-451e-9fce-390ca71a0218",
+      "name": "Has Filename?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2cd6ca7a-da8f-49a5-9790-5617586ff105",
+              "leftValue": "={{ String($json.fileExtension || ($json.originalFilename || $json.name || '').split('.').pop() || '').toLowerCase() }}",
+              "rightValue": "png",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "b99332d4-e54e-409c-bafe-feace06ed3fc",
+              "leftValue": "={{ String($json.fileExtension || ($json.originalFilename || $json.name || '').split('.').pop() || '').toLowerCase() }}",
+              "rightValue": "jpg",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "7df98920-6fb7-48e5-95ca-7b8647ab7b52",
+              "leftValue": "={{ String($json.fileExtension || ($json.originalFilename || $json.name || '').split('.').pop() || '').toLowerCase() }}",
+              "rightValue": "jpeg",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        528,
+        32
+      ],
+      "id": "f8daa0b8-3313-429d-b717-e9982d6ddf72",
+      "name": "Image File?"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        768,
+        32
+      ],
+      "id": "e350677b-48a1-43f9-b621-40ed621f45aa",
+      "name": "Loop Over Files"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst j = item?.json ?? {};\n\nconst source_file_id = j.id ?? null;\nconst originalFilename = j.originalFilename || j.name || '';\nconst fileExtension = String(j.fileExtension || originalFilename.split('.').pop() || '').toLowerCase();\nconst base_name = originalFilename.includes('.')\n  ? originalFilename.slice(0, originalFilename.lastIndexOf('.'))\n  : originalFilename;\n\nconst thaiMonths = [\"มกราคม\",\"กุมภาพันธ์\",\"มีนาคม\",\"เมษายน\",\"พฤษภาคม\",\"มิถุนายน\",\"กรกฎาคม\",\"สิงหาคม\",\"กันยายน\",\"ตุลาคม\",\"พฤศจิกายน\",\"ธันวาคม\"];\n\nlet date = null;\nlet date_p = null;\nlet thaiMonthYear = null;\n\nconst match = originalFilename.match(/_(\\d{4})(\\d{2})(\\d{2})_/);\nif (match) {\n  const [, year, month, day] = match;\n  const d = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));\n  // d.setUTCDate(d.getUTCDate() - 1);\n\n  const dd = String(d.getUTCDate()).padStart(2, '0');\n  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');\n  const yyyy = d.getUTCFullYear();\n\n  date = `${dd}/${mm}/${yyyy}`;\n  date_p = `${mm}/${dd}/${yyyy}`;\n  thaiMonthYear = `${thaiMonths[d.getUTCMonth()]} ${yyyy + 543}`;\n}\n\nreturn [{\n  json: {\n    source_file_id,\n    originalFilename,\n    fileExtension,\n    base_name,\n    template_id: \"12EEsx1wg8HYRzoOCgaOnI7reuF6nN4ZZCs5Fz75BqEM\",\n    processing_folder_id: \"1GwBRbMYCBgspVwrIhJDDsnXx6FOVXTh7\",\n    output_folder_id: \"1FLRJunykKBc5OvbZAUmTR3FvAOclRPrT\",\n    trash_folder_id: \"1rHWght9L7HAu1bhF1B-HnJH0O53nuqcw\",\n    date,\n    date_p,\n    sheet_get_1: \"Center\",\n    col_get_1: \"ชื่อเอกสาร\",\n    value_get_1: thaiMonthYear ? `รายงานความเคลื่อนไหวของข้อมูลแพ็คสินค้า ประจำเดือน ${thaiMonthYear}` : null,\n    sheet_read_1: \"Sheet1\",\n    col_read_1: \"วันที่\",\n    sheet_get_2: \"Log Month\",\n    col_get_2: \"ชื่อเอกสาร\",\n    value_get_2: thaiMonthYear ? `รายงาน ประจำเดือน ${thaiMonthYear}` : null,\n    sheet_read_2: \"Sheet1\",\n    col_read_2: \"วันที่\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        32
+      ],
+      "id": "0c6af50f-65e9-476e-8795-96c7fa475ad0",
+      "name": "Prepare File Job",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.template_id }}",
+          "mode": "id"
+        },
+        "name": "={{ $json.base_name }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1248,
+        32
+      ],
+      "id": "17270e4f-aa65-4bb5-b1a0-c4e48eb1c407",
+      "name": "create-sheet",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Prepare File Job').first(0, $runIndex).json;\nconst out = $input.first()?.json ?? {};\nconst id_spreadsheet = out.id || out.spreadsheetId || null;\nreturn [{ json: { ...base, id_spreadsheet, create_sheet_ok: Boolean(id_spreadsheet) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        32
+      ],
+      "id": "e80e53d6-3291-443f-99d7-6b7fe1095c0e",
+      "name": "Bind Created Sheet",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Bind Created Sheet').first(0, $runIndex).json.template_id }}/values/{{\"Product data\"}}!A1:S?valueRenderOption=UNFORMATTED_VALUE",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1696,
+        32
+      ],
+      "id": "c4edda0b-9814-46f4-8ce2-e78eaa5942f8",
+      "name": "get-raw-data",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Bind Created Sheet').first(0, $runIndex).json.id_spreadsheet || 'INVALID' }}/values/{{ \"Product data\" }}!A1:S:clear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1920,
+        32
+      ],
+      "id": "110a17d2-bf33-4173-b8f3-6e5eb2484c03",
+      "name": "clear-data",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Bind Created Sheet').first(0, $runIndex).json.id_spreadsheet || 'INVALID' }}/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { valueInputOption: 'RAW', data: [{ range: \"'Product data'!A1\", values: $('get-raw-data').first(0, $runIndex).json.values || [] }] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2128,
+        32
+      ],
+      "id": "d7e8390a-d4f9-4bbf-bd5f-954262e668bc",
+      "name": "upload-data",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Bind Created Sheet').first(0, $runIndex).json.source_file_id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Bind Created Sheet').first(0, $runIndex).json.processing_folder_id }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2352,
+        32
+      ],
+      "id": "1f93c639-7451-4cae-959b-76562f23410c",
+      "name": "Move Image to Processing",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "maxTries": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Bind Created Sheet').first(0, $runIndex).json.source_file_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2576,
+        32
+      ],
+      "id": "4a5c3ed8-dfc5-425c-bd31-1698098fd7a7",
+      "name": "Download file",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Bind Created Sheet').first(0, $runIndex).json;\nconst input = $input.first() || {};\nconst binary = input.binary || {};\nconst binary_ok = Object.keys(binary).length > 0;\n\nreturn [{\n  json: { ...base, binary_ok },\n  ...(binary_ok ? { binary } : {})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        32
+      ],
+      "id": "65006666-3b60-41ad-a8e8-2cfaec9f24e5",
+      "name": "File Payload",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1k76vvuUCBp-zD1066VjXYmuUijEVKyMPUFvY-JqIP0s",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('File Payload').first(0, $runIndex).json.sheet_get_1 }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "={{ $('File Payload').first(0, $runIndex).json.col_get_1 }}",
+              "lookupValue": "={{ $('File Payload').first(0, $runIndex).json.value_get_1 || '__NO_MATCH__' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3008,
+        32
+      ],
+      "id": "433179bb-3e85-42d3-adfa-19c0c58801c5",
+      "name": "Get row(s) in sheet6",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Get row(s) in sheet6').first(0, $runIndex).json['ไอดีเอกสาร'] || 'INVALID' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('File Payload').first(0, $runIndex).json.sheet_read_1 }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "={{ $('File Payload').first(0, $runIndex).json.col_read_1 }}",
+              "lookupValue": "={{ $('File Payload').first(0, $runIndex).json.date || '__NO_DATE__' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3232,
+        32
+      ],
+      "id": "f608a217-e7d4-48eb-91e8-0f7c7a5fc02d",
+      "name": "Read Sheet 1",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "4401567b-c964-41c6-9fcf-bb6b95666d18",
+      "name": "Collapse Context Path",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        3456,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1uAEiphonPW8O_BBXmNhUV9wHqK91CuczFLPll3o4AcU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('File Payload').first(0, $runIndex).json.sheet_get_2 }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "={{ $('File Payload').first(0, $runIndex).json.col_get_2 }}",
+              "lookupValue": "={{ $('File Payload').first(0, $runIndex).json.value_get_2 || '__NO_MATCH__' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3680,
+        32
+      ],
+      "id": "1e221e80-fbc0-49f4-87e4-28c13a7c68e3",
+      "name": "Get row(s) in sheet8",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Get row(s) in sheet8').first(0, $runIndex).json.รหัสเอกสาร || 'INVALID' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('File Payload').first(0, $runIndex).json.sheet_read_2 }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "={{ $('File Payload').first(0, $runIndex).json.col_read_2 }}",
+              "lookupValue": "={{ $('File Payload').first(0, $runIndex).json.date || '__NO_DATE__' }}"
+            }
+          ]
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange",
+              "headerRow": 2,
+              "firstDataRow": 3
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3888,
+        32
+      ],
+      "id": "66eee550-3e18-4ddf-85f0-c0bf06b5e3f4",
+      "name": "Read Sheet 2",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sheet1 = $('Read Sheet 1').all(0, $runIndex);\nconst sheet2 = $input.all();\n\nconst normalize = (v) =>\n  (v === undefined || v === null) ? '' : String(v).trim().replace(/-/g, '/');\n\nconst set = new Set();\nfor (const it of sheet1) {\n  const c = normalize(it.json?.['เครื่องจักร']);\n  if (c) set.add(c);\n}\nfor (const it of sheet2) {\n  const c = normalize(it.json?.['เครื่อง']);\n  if (c) set.add(c);\n}\n\nreturn [{ json: { machine: [...set] }, pairedItem: { item: 0 } }];"
+      },
+      "id": "9a58bb20-b764-4124-9215-8257c11a8bda",
+      "name": "Combine Machines",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4112,
+        32
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Ln4pngPMrcaxjpvetB5LPNEafll1b6nywpsJmlk38po",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 342196036,
+          "mode": "list",
+          "cachedResultName": "Product data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ln4pngPMrcaxjpvetB5LPNEafll1b6nywpsJmlk38po/edit#gid=342196036"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4336,
+        32
+      ],
+      "id": "47616375-68e2-46b7-a7ad-6fbe48bf38be",
+      "name": "Read Sheet 3",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const file = $('File Payload').first(0, $runIndex);\nconst binary = file.binary || {};\n\nlet machine = [];\ntry {\n  machine = $('Combine Machines').first(0, $runIndex).json.machine || [];\n} catch (e) {}\n\nconst normalize = (v) =>\n  (v === undefined || v === null) ? '' : String(v).trim().replace(/-/g, '/');\n\nconst machineSet = new Set(machine.map(normalize));\nconst sheet3 = $input.all();\n\nconst MACHINE_COL = 'Machine';\nconst NAME_COL = 'Full_name';\nconst SEP = ' | ';\nconst chosen = new Map();\n\nfor (const it of sheet3) {\n  if (!machineSet.has(normalize(it.json?.[MACHINE_COL]))) continue;\n  const raw = it.json?.[NAME_COL];\n  if (raw === undefined || raw === null || String(raw).trim() === '') continue;\n\n  const parts = String(raw).split('|').map(p => p.trim()).slice(0, 4);\n  const trimmed = parts.join(SEP);\n  const front = parts.slice(0, 3).join(SEP);\n  const color = parts[3] || '';\n  const isSai = color.endsWith('ใส');\n\n  if (!chosen.has(front) || (!chosen.get(front).isSai && isSai)) {\n    chosen.set(front, { trimmed, isSai });\n  }\n}\n\nconst produce_name = [...chosen.values()].map(v => v.trimmed);\n\nreturn [{\n  json: {\n    machine,\n    produce_name,\n    state: {\n      file: file.json,\n      ocr: {}\n    }\n  },\n  ...(Object.keys(binary).length ? { binary } : {})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4560,
+        32
+      ],
+      "id": "fb7ca994-a3cf-4073-a932-14b8a9424141",
+      "name": "Build OCR Context",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cur = $input.first() || {};\nconst fallback = $('File Payload').first(0, $runIndex) || {};\nconst binary = cur.binary || fallback.binary || {};\nconst json = cur.json || {};\nconst file = fallback.json || {};\nconst state = json.state || { file, ocr: {} };\nreturn [{\n  json: {\n    ...json,\n    machine: Array.isArray(json.machine) ? json.machine : [],\n    produce_name: Array.isArray(json.produce_name) ? json.produce_name : [],\n    state\n  },\n  ...(Object.keys(binary).length ? { binary } : {})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4768,
+        32
+      ],
+      "id": "885ad3f2-8fdf-4948-9945-9a7728b4292e",
+      "name": "OCR 1 Input"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-pro-preview-customtools",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-pro-preview-customtools"
+        },
+        "text": "=You are an OCR extraction agent.\n\nThe image is a Thai production inspection form (FM-DQM-002). Focus ONLY on the \"Product Information / รายละเอียดสินค้า\" block in the UPPER-LEFT of the form. It is a 2-column key-value table whose printed left-column labels (top to bottom) are: Production Date / วันที่ผลิตสินค้า, Machine No. / เครื่องจักร, Product Name / ชื่อสินค้า, Product Code / รหัสสินค้า, Production Shift / รอบการผลิต. The right column holds handwritten values.\nDo NOT extract data from the \"Inspection Information\" block, the large inspection data table below, or any other part of the form.\n\nTable structure:\n- Rows: 5 rows total (including empty rows)\n- Columns: 2 columns labeled A, B\n  - A = the printed row label (extract verbatim Thai text)\n  - B = the handwritten value, with per-row rules below\n\nPer-row rules for column B:\n- Row 1 (Production Date): \"{{ $json.state?.file?.date }}\"\n\n\n- Row 2 (Machine No.): resolve using a two-tier lookup.\n    List 1 = {{ JSON.stringify($json.machine ?? []) }}\n    List 2 = [\"PF8/3\", \"PF8/5\", \"PF8/6\", \"PF8/7\", \"PF8/8\", \"ASB250/3\", \"TE\"]\n    Lookup order:\n      1. First try to match the value against List 1. If it matches (or closely matches) an option in List 1, return that List 1 value.\n      2. If, and only if, no match is found in List 1, try to match against List 2. If it matches (or closely matches) an option in List 2, return that List 2 value.\n      3. If no match is found in either list, set null.\n    Note: List 1 takes priority. Only fall back to List 2 when List 1 yields no match.\n\n- Row 3 (Product Name): resolve using a two-tier lookup.\n    List 1 = {{ JSON.stringify($json.produce_name ?? []) }}\n    List 2 = [\"ขวดอนันดา 350 | ขวดเปล่า | 18.5 ±1 | ใส\", \"บจก.อัมพร มาร์เก็ทติ้ง (380 CC.) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเคลลี่ 450 | ขวดเปล่า | 20 ±1 | ใส\", \"ขวดเอคิววายซอส (500 CC.) | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดไบเล่ 250 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดไบเล่ 370 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดบางกอก 320 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเบลมองด์ 500 | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดโบว์ลิ่งสยาม 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดโบว์ลิ่ง 330 | ขวดเปล่า | 15.5 ±1 | ฟ้าใส\", \"ขวดโบว์ลิ่ง 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเหลี่ยมเพชรล่าง 330 (CL Series) | ขวดเปล่า | 13.5 ±1 | ฟ้าใส\", \"ขวดเหลี่ยมเพชรล่าง 550 (CL Series) | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดโคโคโซ่ 320 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดโชคมหาชัย 350 | ขวดเปล่า | 21 ±1 | เขียวเข้ม\", \"ขวด CPC 1 ลิตร | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดเกลียว 1 ลิตร | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดคริสตัล 1500 | ขวดเปล่า | 43 ±1 | ฟ้า\", \"ขวดคริสตัล 1500 (ทรงกลม) | ขวดเปล่า | 35 ±1 | ฟ้าใส\", \"ขวดคริสตัล 600 | ขวดเปล่า | 18.5 ±1 | ฟ้า\", \"ขวดเซ็นทรัล 330 | ขวดเปล่า | 13.5 ±1 | ฟ้าใส\", \"ขวดเซ็นทรัล 350 | ขวดเปล่า | 18.5 ±1 | เขียว\", \"ขวดดีโด้ 500 เหลี่ยม | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดดิสมิธฟู้ด 435 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดดิสมิธฟู้ด 740 | ขวดเปล่า | 42 ±1 | ใส\", \"ขวดอีโม่ 330 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเหลี่ยมเพชรบน 500 | ขวดเปล่า | 19 ±1 | ฟ้าใส\", \"ขวดฟิวเจอร์ 500 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดโฮมช้อยส์ 1500 (HO Series) | ขวดเปล่า | 36 ±1 | ฟ้าใส\", \"ขวดโฮมชอยส์ 600 (HO Series) | ขวดเปล่า | 21 ±1 | ฟ้าใส\", \"ขวดไอดีล 180 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไอดีล 180 มุก | ขวดเปล่า | 21 ±1 | ขาวมุก\", \"ขวดไอดีล 250 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดไอดีล 350 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไคโอ 350 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไอดีล 500 กลม | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไอดีล 500 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไอดีล 600 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดมะพร้าว 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"บจก.กรุงสยามเครื่องดื่ม (450 เปล่า) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเลอคูล 1500 (LC Series) | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดเลอคูล 330 (LC Series) | ขวดเปล่า | 13.5 ±1 | ใส\", \"ขวดเลอคูล 550 (LC Series) | ขวดเปล่า | 15.5 ±1 | ฟ้าใส\", \"ขวดหยก 1000 | ขวดเปล่า | 33 ±1 | ใส\", \"ขวดหยก 250 | ขวดเปล่า | 15 ±1 | ใส\", \"ขวดทับทิม 1 ลิตร | ขวดเปล่า | 35 ±1 | ใส\", \"Molecule Beverages 330ML | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดมายช้อยส์ 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดมองต์เฟลอ 1500 | ขวดเปล่า | 37 ±1 | ฟ้าใส\", \"ขวดมองต์เฟลอ 500 | ขวดเปล่า | 18.5 ±1 | ฟ้าใส\", \"ขวดมิเนเร่ 1500 (MI Series) | ขวดเปล่า | 43 ±1 | ใส\", \"ขวดมิเนเร่ 500 (MI Series) | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดมรกต 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดนูบูน 1000 | ขวดเปล่า | 42 ±1 | ใส\", \"ขวดนูบูน 250 | ขวดเปล่า | 15 ±1 | ใส\", \"ขวดนูบูน 300 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดนูบูน 500 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเนปจูน 600 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดน้ำทิพย์ 1500 | ขวดเปล่า | 37 ±1 | ฟ้าใส\", \"ขวดน้ำทิพย์ 600 | ขวดเปล่า | 18.5 ±1 | ฟ้าใส\", \"ขวดออนเดอะเทเบิ้ล 330 (OB Series) V1 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดออนเดอะเทเบิ้ล 330 (OB Series) (ตัวสั้น) V2 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดออนเดอะเทเบิ้ล 500 (OB Series) V1 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดออนเดอะเทเบิ้ล 500 (OB Series) V2 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดโอลีน 1 ลิตร | ขวดเปล่า | 33 ±1 | ใส\", \"ขวดโฮมเฟรชมาร์ท 1500 (OX Series) | ขวดเปล่า | 37 ±1 | ฟ้าใส\", \"ขวดโฮมเฟรชมาร์ท 330 (OX Series) | ขวดเปล่า | 13.5 ±1 | ใส\", \"ขวดโฮมเฟรชมาร์ท 600 (OX Series) | ขวดเปล่า | 15.5 ±1 | ฟ้าใส\", \"หลอดพรีฟอร์ม 19 กรัม | หลอดเปล่า | 19 ±1 | ใส\", \"หลอดพรีฟอร์ม 21 กรัม | หลอดเปล่า | 21 ±1 | ใส\", \"หลอดพรีฟอร์ม 36 กรัม | หลอดเปล่า | 36 ±1 | ใส\", \"หลอดพรีฟอร์ม 17 กรัม | หลอดเปล่า | 17 ±1 | ใส\", \"หจก.พี เอฟ ฟู้ด (380 เปล่า) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดพลอย 1000 (PL Series) | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดพลอย 250 (PL Series) | ขวดเปล่า | 15 ±1 | ใส\", \"ขวดแพนสยาม 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดแพนสยาม 500 | ขวดเปล่า | 26 ±1 | ใส\", \"ขวดเเสงนลินฟู้ดส์ 380 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดสิงห์ 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดเซ็ปเป้ 320 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเซ็ปเป้ 400 | ขวดเปล่า | 26 ±1 | ใส\", \"ขวดศรทอง 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"บจก.ไทยแอทลาส (320 เปล่า) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดไทยอกริฟู้ดส์ 200 | ขวดเปล่า | 20 ±1 | ใส\", \"ขวดไทยอกริฟู้ดส์ 430 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดไทซัน 1000 (TI SERIES) | ขวดเปล่า | 43 ±1 | ใส\", \"ขวดไทซัน 1500 (TI SERIES) | ขวดเปล่า | 43 ±1 | ใส\", \"ขวดไทซัน 500 (TI SERIES) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดธาราทิพย์ 450 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวด 1000 กรีนเมท | ขวดเปล่า | 43 ±1 | ใส\", \"ขวด 250 สมูทตี้ | ขวดเปล่า | 20 ±1 | ใส\", \"ขวด 290 สมูทตี้ | ขวดเปล่า | 19 ±1 | ใส\", \"ขวด 400 กรีนเมท | ขวดเปล่า | 20 ±1 | ใส\", \"ขวด 400 BSC | ขวดเปล่า | 20 ±1 | ใส\", \"ขวดเคลลี่ 400 | ขวดเปล่า | 20 ±1 | ใส\", \"ขวดทานตะวัน 730 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวด Vince 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดองุ่น 1 ลิตร | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดองุ่น 2 ลิตร (VT Series) V1 | ขวดเปล่า | 58 ±1 | ใส\", \"ขวดองุ่น 2 ลิตร (VT Series) V2 | ขวดเปล่า | 58 ±1 | ใส\", \"บจก.เวิล์ดฟูดส์ (270 CC.) | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดวารินิตี้ 320 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเอคิววายซอส (นาคาคุระ 1000 CC.) | ขวดเปล่า | 35 ±1 | ใส\", \"หลอดพรีฟอร์ม 17 กรัม (Hot Fill) | หลอดเปล่า | 17 ±1 | ใส\", \"ขวดโฮมเฟรชมาร์ท 330 (OX Series) (เทามุก 2.0) | ขวดเปล่า | 13.5 ±1 | เทามุก\", \"ขวดโฮมเฟรชมาร์ท 330 (OX Series) (เทามุก 2.5) | ขวดเปล่า | 13.5 ±1 | เทามุก\", \"ขวดเลอคูล 330 (LC Series) (เทามุก 2.0) | ขวดเปล่า | 13.5 ±1 | เทามุก\", \"ขวดเลอคูล 330 (LC Series) (เทามุก 2.5) | ขวดเปล่า | 13.5 ±1 | เทามุก\", \"ขวดโคโคนัท 235 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดแซ่บไมค์ 350 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเลอแม็ก 300 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดโซ 400 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดคณา 500 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดคณา 500 V2 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดน้ำปลาร้าหม่ำ 350 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเนอร์วาน่า 550 | ขวดเปล่า | 38.5 ±1 | ใส\", \"ขวดเบียร์ 330 V2 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดไทยเท 250 | ขวดเปล่า | 17 ±1 | ใส\", \"ขวดเบลมองด์ 220 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดน้ำมันรำข้าว 550 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวด 7coin 300 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดแก้วแวคคัม 350 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดแวคคัม 600 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดจรวด 435 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดเจ็นเจ 350 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดคอมมานโด 600 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดอินโนเฟรช 465 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดอินโนเฟรช 455 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดน้ำดื่ม 2000 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดปาปาแพค 150 KR | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดปาปาแพค 200 KR | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดปาปาแพค 220 KR | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดปาปาแพค 250 KR | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเบลมองด์ 1000 | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดเบลมองด์ 500 (Online) | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดฉั่วฮะเส็ง 380 | ขวดเปล่า | 22 ±1 | ใส\", \"ขวดบีสปอร์ต 320 | ขวดเปล่า | 19 ±1 | ใส\", \"ขวดโฮมเฟรชมาร์ท 1000 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเอโร่ 1000 | ขวดเปล่า | 35 ±1 | ใส\", \"ขวดอนันดา 320 | ขวดเปล่า | 18.5 ±1 | ใส\", \"ขวดเซ็นทรัล 330 V2 | ขวดเปล่า | 18.5 ±1 | ใส\", \"หลอดพรีฟอร์ม 12 กรัม | หลอดเปล่า |  | ใส\", \"หลอดพรีฟอร์ม 14 กรัม | หลอดเปล่า |  | ใส\", \"หลอดพรีฟอร์ม 26 กรัม | หลอดเปล่า |  | ใส\", \"ขวดนูบูน 1000 | ขวดเปล่า | 42 ±1 | ใส\", \"ขวดซากุระ 700 | ขวดเปล่า | 22.7 ±1 | ใส\", \"ขวดกรุงสยาม 450 V2 | ขวดเปล่า | 22 ±1 | ใส\", \"ขวดไทฮันนี่ 700 | ขวดเปล่า | 43 ±1 | ใส\", \"หลอดพรีฟอร์ม 16 กรัม | หลอดเปล่า | 16 ±1 | ใส\", \"หลอดพรีฟอร์ม 22.7 กรัม | หลอดเปล่า | 22.7 ±1 | ใส\", \"ขวด Vince 1000 | ขวดเปล่า | 37 ±1 | ใส\", \"ขวดไอดีล 450 | ขวดเปล่า | 36 ±1 | ใส\", \"ขวดซากุระ 500 | ขวดเปล่า | 22.7 ±1 | ใส\", \"ขวดวาลาไทย 320 | ขวดเปล่า | 17 ±1 | ใส\", \"หจก.พี เอฟ ฟู้ด (380 เปล่า) V2 | ขวดเปล่า | 21 ±1 | ใส\", \"ขวดเหล่าธงสิงห์ 1000 | ขวดเปล่า | 35 ±1 | ใส\"]\n    Lookup order:\n      1. First try to match the value against List 1. If it matches (or closely matches) an option in List 1, return that List 1 value.\n      2. If, and only if, no match is found in List 1, try to match against List 2. If it matches (or closely matches) an option in List 2, return that List 2 value.\n      3. If no match is found in either list, set null.\n    Note: List 1 takes priority. Only fall back to List 2 when List 1 yields no match.\n\n- Row 4 (Product Code): set null only.\n\n- Row 5 (Production Shift): a number or empty only; if not a number, set null.\n\nRules:\n1. Read every row and every column - do NOT skip any row or column, even if empty\n2. If a cell is empty or has no value, use null - never omit it\n3. Every row must have exactly 2 keys (\"A\",\"B\") in \"response\"\n4. Return ONLY valid JSON, no explanation or markdown\n\nOutput format:\n{ \"output\": [ { \"row\": 1, \"response\": { \"A\": \"<label>\", \"B\": \"<value or null>\" } } ] }",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        4992,
+        32
+      ],
+      "id": "b3d61a27-cd78-4e78-8df4-bc177f8c9643",
+      "name": "ocr-agent-1",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first() || {};\nconst anchor = $('OCR 1 Input').item;\nconst binary = anchor.binary || {};\nconst prev = anchor.json || {};\n\nfunction parseGemini(j) {\n  const raw = j?.candidates?.[0]?.content?.parts?.[0]?.text;\n  if (!raw || typeof raw !== 'string') {\n    return { ok:false, result:[], error:j?.error?.message || j?.message || 'No Gemini candidate text' };\n  }\n  try {\n    const match = raw.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n    const clean = (match?.[1] ?? raw).trim()\n      .replace(/^```(?:json)?/i, '')\n      .replace(/```$/i, '')\n      .trim();\n    const parsed = JSON.parse(clean);\n    let rows = [];\n    if (Array.isArray(parsed)) rows = parsed;\n    else if (parsed && Array.isArray(parsed.output)) rows = parsed.output;\n    else if (parsed && typeof parsed === 'object') {\n      rows = Object.entries(parsed).map(([key,value]) => {\n        if (value && typeof value === 'object' && !Array.isArray(value)) {\n          return value.row ? value : { ...value, row_id:value.row_id ?? key };\n        }\n        return { row_id:key, value };\n      });\n    }\n    return { ok:rows.length > 0, result:rows, error:rows.length ? null : 'Parsed JSON contains no rows' };\n  } catch (e) {\n    return { ok:false, result:[], error:`JSON parse failed: ${e.message}` };\n  }\n}\n\nconst parsed = parseGemini(input.json || {});\nconst state = JSON.parse(JSON.stringify(prev.state || { file: {}, ocr: {} }));\nstate.ocr = state.ocr || {};\nstate.ocr['ocr1'] = parsed;\n\nreturn [{\n  json: { ...parsed, state },\n  ...(Object.keys(binary).length ? { binary } : {})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5216,
+        32
+      ],
+      "id": "5da8559e-818e-4e51-9cae-37d66ceef3a5",
+      "name": "Parse OCR 1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "158b9991-bf8f-432a-a935-e74c9c9d6aba",
+              "leftValue": "={{ $json.ok === true ? 1 : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5440,
+        32
+      ],
+      "id": "575fbc89-448e-46ea-b35f-1ac8df50d196",
+      "name": "OCR 1 OK?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query=$('Prepare Product Lookup').item;\nconst data=query.json||{};\nconst rows=Array.isArray(data.result)?data.result:[];\nconst state=data.state||{file:{},ocr:{}};\nconst binary=query.binary||{};\nconst sheetData=$input.first()?.json||{};\n\nconst productFields=[];\nfor(const [key,val] of Object.entries(sheetData)){\n  if(key.startsWith('ชื่อสินค้า#')&&val) productFields.push(val);\n}\nfunction cleanValue(value){\n  if(typeof value==='string'){\n    const x=value.trim().toLowerCase();\n    if(x==='null'||x==='-'||x==='0') return null;\n  }\n  return value;\n}\nfunction findMatch(keyword){\n  if(!keyword||!productFields.length) return null;\n  return productFields.find(v=>String(v).includes(String(keyword).trim()))||null;\n}\n\nreturn rows.filter(r=>r&&r.row).sort((a,b)=>a.row-b.row).map(r=>{\n  const out={row:r.row,_state:state};\n  for(const [k,v] of Object.entries(r.response||{})) out[`T1_${k}`]=cleanValue(v);\n  if(out.row===3&&out.T1_B!=null) out.T1_B=findMatch(out.T1_B)??out.T1_B;\n  return {json:out,...(Object.keys(binary).length?{binary}:{}),pairedItem:{item:0}};\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6320,
+        -112
+      ],
+      "id": "8406791f-97c1-46b5-b839-b3939eb2730a",
+      "name": "Format Top Rows",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json._state?.file?.id_spreadsheet || 'INVALID' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "FM-DQM-002-top",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "T1_A": "={{ $json.T1_A ?? null }}",
+            "T1_B": "={{ $json.T1_B ?? null }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "T1_A",
+              "displayName": "T1_A",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "T1_B",
+              "displayName": "T1_B",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        6480,
+        -112
+      ],
+      "id": "aca7f9cd-d622-4c6d-9a46-1e76e3a3b81b",
+      "name": "Append Top Rows",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$('Format Top Rows').item;\nconst state=src.json?._state || src.json?.state || {file:{},ocr:{}};\nreturn [{json:{state},...(src.binary?{binary:src.binary}:{})}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6752,
+        -112
+      ],
+      "id": "9652df96-adc6-450d-b10e-8d815600f4f2",
+      "name": "Prepare OCR 2 - Success",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $input.first() || {};\nreturn [{ json:src.json || {}, ...(src.binary ? { binary:src.binary } : {}) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6752,
+        160
+      ],
+      "id": "b4e2651b-01a6-46b7-be19-14ffbcd38ef0",
+      "name": "Prepare OCR 2 - Fallback",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cur = $input.first() || {};\nconst fallback = $('OCR 1 Input').first(0, $runIndex) || {};\nconst binary = cur.binary || fallback.binary || {};\nconst json = cur.json || {};\nconst state = json.state || fallback.json?.state || { file: {}, ocr: {} };\nreturn [{ json: { ...json, state }, ...(Object.keys(binary).length ? { binary } : {}) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6976,
+        32
+      ],
+      "id": "65f819b1-ad34-42f9-ac2b-c8aa625c3295",
+      "name": "OCR 2 Input"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-pro-preview-customtools",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-pro-preview-customtools"
+        },
+        "text": "=You are an OCR extraction agent.\n\nThe image is a Thai production inspection form (FM-DQM-002). Focus ONLY on the SINGLE handwritten code row located near the top of the large data table, inside the \"Nonconforming Product (pcs.) / จำนวนสินค้าที่ไม่ผ่านเกณฑ์\" sub-columns under \"Result of Bottle Appearance Assessment\". This row sits ABOVE the first time-stamped data row (08:15) and contains handwritten defect codes such as \"I1\" and \"G4\".\nDo NOT extract any of the time-stamped data rows below it, the Good (pcs.) column, the Inspection Time column, or any other section.\n\nTable structure:\n- Rows: 1 row total\n- Columns: 6 columns labeled A, B, C, D, E, F (left to right)(no header)\n\nValue rule (every cell A-F):\n- Mapping table (read the Thai text in the cell, find the closest match on the LEFT, return the value on the RIGHT):\nA7 → \"A7 | ไหล่ย่น\"; A8 → \"A8 | ก้นย่น\"; A2 → \"A2 | ลำตัวพับ\"; A1 → \"A1 | คอขวดและ Support ring เสียรูปทรง\"; B1 → \"B1 | ผิวขวดมีรูรั่ว\"; B2 → \"B2 | ผิวขวดเสี่ยงรั่ว\"; C1 → \"C1 | ปากขวดแหว่ง\"; C3 → \"C3 | Support ring แหว่ง\"; D8 → \"D8 | ไหล่ริ้ว\"; D11 → \"D11 | ไหล่ขวดนิ่ม\"; D12 → \"D12 | ไหล่ขวดมีความหนากว่าปกติ\"; D10 → \"D10 | ก้นนิ่ม\"; D13 → \"D13 | ก้นขวดมีความหนากว่าปกติ\"; E2 → \"E2 | ขวดมีลักษณะขาวขุ่นทึบ\"; E3 → \"E3 | ขวดมีลักษณะขาวขุ่น\"; D9 → \"D9 | เส้นผ่านศูนย์กลางใหญ่กว่ามาตรฐาน\"; D6 → \"D6 | ปากขวดโตกว่าปกติ\"; D7 → \"D7 | Support ring กว้างกว่ามาตรฐาน\"; F2 → \"F2 | พลาสติกบริเวณ Support ring เกินออกมา\"; F3 → \"F3 | พลาสติกบริเวณก้นขวดเกินออกมา\"; D2 → \"D2 | ปริมาตรเกินมาตรฐาน\"; D1 → \"D1 | ปริมาตรต่ำกว่ามาตรฐาน\"; C9 → \"C9 | คอแหวน\"; C11 → \"C11 | เงาแหวน\"; G1 → \"G1 | เกตคัทติดขวด\"; C12 → \"C12 | บริเวณด้านในเป็นวงแหวนเล็ก\"; C6 → \"C6 | ไหล่ยุบ\"; C2 → \"C2 | ปากขวดขึ้นรูปไม่เต็ม\"; H1 → \"H1 | หยดน้ำ\"; H2 → \"H2 | ฟองอากาศ\"; H5 → \"H5 | คราบอากาศ\"; I1 → \"I1 | ก้นเบี้ยว\"; G4 → \"G4 | เส้นพลาสติกติดขวด\"; J1 → \"J1 | ขวดมีรอยบุบ\"; J6 → \"J6 | ขวดมีรอยขีดข่วน\"; J4 → \"J4 | ขวดมีรอยขนแมว\"; D3 → \"D3 | TOP LOAD ต่ำกว่ามาตรฐาน\"; A5 → \"A5 | เกลียวของขวดมีรอยแตก\"; I2 → \"I2 | เกตคัทยาว\"; K2 → \"K2 | เป่าไม่ออก\"; K1 → \"K1 | เป่ารั่ว\"; D4 → \"D4 | ความแข็งแรงต่ำ\"; D5 → \"D5 | ขวดมีความแข็งต่ำ\"; H6 → \"H6 | ผิวเป็นตุ่ม\"; D14 → \"D14 | มีปริมาณ A.A. สูง\"; L1 → \"L1 | เนื้อพลาสติกมีคราบสนิมติดอยู่\"; H4 → \"H4 | คราบน้ำ\"; L2 → \"L2 | คราบน้ำมัน\"; M1 → \"M1 | สิ่งแปลกปลอมภายในสินค้า\"; M2 → \"M2 | จุดดำ\"; A3 → \"A3 | คอพับ\"; N5 → \"N5 | ฉลากเอียง\"; N1 → \"N1 | ฉลากหลุดออกจากขวด\"; N4 → \"N4 | ฉลากอยู่สูง-ต่ำกว่ามาตรฐาน\"; N7 → \"N7 | ฉลากย่น\"; O1 → \"O1 | ฉลากมีรอยฉีกขาด\"; N2 → \"N2 | ขวดไม่มีการสวมฉลาก\"; P1 → \"P1 | ตัวอักษร สี ขนาด ไม่ได้ตามมาตรฐาน\"; O2 → \"O2 | ฉลากเว้า\"; N6 → \"N6 | ฉลากตัดไม่ขาด\"; N3 → \"N3 | ฉลากกลับหัว\"; L3 → \"L3 | คราบน้ำบริเวณก้น\"; J3 → \"J3 | พลาสติกติดแม่พิมพ์\"; H3 → \"H3 | ละอองน้ำ\"; J2 → \"J2 | ขวดมีรอยประกบใหญ่\"; E4 → \"E4 | ก้นขวดขาวขุ่น\"; C8 → \"C8 | ก้นไม่เต็ม\"; C4 → \"C4 | ก้นเว้า\"; C5 → \"C5 | ลำตัวเว้า\"; J5 → \"J5 | ปากขวดมีรอยขูด\"; C10 → \"C10 | ไหล่ดอกไม้\"; E1 → \"E1 | คอขาว\"; J7 → \"J7 | เกตคัทมีรอยยุบด้านใน\"; C7 → \"C7 | ลำตัวย่น\"; A4 → \"A4 | ปากไม่กลม\"; F1 → \"F1 | พลาสติกบริเวณเกลียวเกินออกมา\"; A6 → \"A6 | ก้นปูด\"; G2 → \"G2 | เม็ดพลาสติกติดขวด\"; G3 → \"G3 | เม็ดไม่ละลาย\"; Q1 → \"Q1 | ผลการทดสอบในใบ COA ไม่ผ่านสเปก\"; Q2 → \"Q2 | ใบ COA ไม่ตรงกับสินค้าที่จัดส่ง\"; Q3 → \"Q3 | ใบ COA ของวัตถุดิบมีค่าไม่ผ่านตาม Spec.\"; Q4 → \"Q4 | ใบ COA ลงรายละเอียดไม่ถูกต้อง\"; N8 → \"N8 | ฉลากไม่ได้อบ\"; N9 → \"N9 | ตัดฉลากไม่ตรงตำแหน่ง\"; N10 → \"N10 | ฉลากพับ\"; R2 → \"R2 | เม็ดมีความชื้นสูง\"; R1 → \"R1 | เม็ดพลาสติกมีสิ่งปลอมปน\"; M3 → \"M3 | ก้นดำ\"; E5 → \"E5 | ไหล่ขาว\"; S1 → \"S1 | ขวดสินค้าชนิดอื่นปนในถุงบรรจุ\"; T1 → \"T1 | จำนวนขวดไม่เต็มแพ็ค\"; T2 → \"T2 | จำนวนขวดเกิน\"; U1 → \"U1 | เรียงขวดในถุงบรรจุภัณฑ์ไม่ได้ตามมาตรฐาน\"; U2 → \"U2 | ติดเทปกาวไม่ได้ตามกำหนด\"; D15 → \"D15 | ลำตัวนิ่ม\"; D16 → \"D16 | ก้นลาย\"; C13 → \"C13 | รอยปื้น\"; A9 → \"A9 | ขวดลู่\"; A10 → \"A10 | รอยร้าว\"; D17 → \"D17 | สีไม่ได้ตามมาตรฐาน\"; A11 → \"A11 | คอปูด\"; K3 → \"K3 | หลอดไม่ถูกเป่าขึ้นรูป\"; A12 → \"A12 | ขวดโดนความร้อนจากไดร์\"; A13 → \"A13 | ขวดโดนความร้อนจากตู้อบฟิล์ม\"; J8 → \"J8 | ผิวปากขวดไม่เนียน\"; M4 → \"M4 | เนื้อพลาสติกไหม้\"; J9 → \"J9 | รอยประกบไม่ได้ระนาบ\"; J10 → \"J10 | รอยแม่พิมพ์\"; J11 → \"J11 | ลายหลอดพรีฟอร์ม\"; V1 → \"V1 | ชื่อสินค้าในใบส่งมอบไม่ถูกต้อง\"; V2 → \"V2 | ติดป้าย QR CODE ผิดประเภทสินค้า\"; V3 → \"V3 | ป้าย QR CODE ฉีกขาด\"; V4 → \"V4 | สแกนป้าย QR CODE ซ้ำ\"; U3 → \"U3 | นำ้หนักบรรจุภัณฑ์ไม่ได้ตามมาตรฐาน\"; J12 → \"J12 | คอขวดมีรอยขูด\"; A14 → \"A14 | ก้นมีรอยแตก\"; U4 → \"U4 | ส่ิงแปลกปลอมภายในห่อสินค้า\"; N11 → \"N11 | ฉลากรัด\"; F4 → \"F4 | พลาสติกบริเวณคอขวดเกินออกมา\"; A15 → \"A15 | คอเอียง\"; A16 → \"A16 | ขวดหดตัวเสียรูปทรง\"; U5 → \"U5 | เลือกถุงบรรจุภัณฑ์ผิด\"; B3 → \"B3 | รอยประกบแตก\"; E6 → \"E6 | Support ring ขาว\". If a value does not match any option, pick the closest match. If no match is possible, set null.\n\nRules:\n1. Read every column left-to-right — do NOT skip any column, even if empty\n2. For each cell, read the Thai text visible in the image, find the closest match on the LEFT side of the mapping table, then return the corresponding RIGHT side value\n3. If a cell is empty or unreadable, use null\n4. The single row must have exactly 6 keys: A, B, C, D, E, F in \"response\"\n5. Data is filled left-to-right with no gaps — once a null appears, all subsequent columns are also null\n6. Return ONLY valid JSON, no explanation or markdown\n\nOutput format:\n{ \"output\": [ { \"row\": 1, \"response\": { \"A\": \"<value or null>\", \"B\": \"<value or null>\", \"C\": \"<value or null>\", \"D\": \"<value or null>\", \"E\": \"<value or null>\", \"F\": \"<value or null>\" } } ] }",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        7200,
+        32
+      ],
+      "id": "9cd4063b-e2ef-43ef-9676-bf21b39a947d",
+      "name": "ocr-agent-2",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first() || {};\nconst anchor = $('OCR 2 Input').item;\nconst binary = anchor.binary || {};\nconst prev = anchor.json || {};\n\nfunction parseGemini(j) {\n  const raw = j?.candidates?.[0]?.content?.parts?.[0]?.text;\n  if (!raw || typeof raw !== 'string') {\n    return { ok:false, result:[], error:j?.error?.message || j?.message || 'No Gemini candidate text' };\n  }\n  try {\n    const match = raw.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n    const clean = (match?.[1] ?? raw).trim()\n      .replace(/^```(?:json)?/i, '')\n      .replace(/```$/i, '')\n      .trim();\n    const parsed = JSON.parse(clean);\n    let rows = [];\n    if (Array.isArray(parsed)) rows = parsed;\n    else if (parsed && Array.isArray(parsed.output)) rows = parsed.output;\n    else if (parsed && typeof parsed === 'object') {\n      rows = Object.entries(parsed).map(([key,value]) => {\n        if (value && typeof value === 'object' && !Array.isArray(value)) {\n          return value.row ? value : { ...value, row_id:value.row_id ?? key };\n        }\n        return { row_id:key, value };\n      });\n    }\n    return { ok:rows.length > 0, result:rows, error:rows.length ? null : 'Parsed JSON contains no rows' };\n  } catch (e) {\n    return { ok:false, result:[], error:`JSON parse failed: ${e.message}` };\n  }\n}\n\nconst parsed = parseGemini(input.json || {});\nconst state = JSON.parse(JSON.stringify(prev.state || { file: {}, ocr: {} }));\nstate.ocr = state.ocr || {};\nstate.ocr['ocr2'] = parsed;\n\nreturn [{\n  json: { ...parsed, state },\n  ...(Object.keys(binary).length ? { binary } : {})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7408,
+        32
+      ],
+      "id": "55965843-516e-4c4c-8088-923db2294eaf",
+      "name": "Parse OCR 2",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "adbc1688-2f78-4d7f-910b-ce8836fe36ea",
+              "leftValue": "={{ $json.ok === true ? 1 : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7632,
+        32
+      ],
+      "id": "f2e951de-449b-4942-a74c-297e17bb9b26",
+      "name": "OCR 2 OK?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed=$input.first()||{};\nconst data=parsed.json||{};\nconst state=data.state||{file:{},ocr:{}};\nconst binary=parsed.binary||{};\nfunction cleanValue(v){if(typeof v==='string'){const x=v.trim().toLowerCase();if(x==='null'||x==='-'||x==='0')return null;}return v;}\nreturn (data.result||[]).filter(r=>r&&r.row).sort((a,b)=>a.row-b.row).map(r=>{\n  const out={row:r.row,_state:state};\n  for(const [k,v] of Object.entries(r.response||{})) out[`T1_${k}`]=cleanValue(v);\n  return {json:out,...(Object.keys(binary).length?{binary}:{}),pairedItem:{item:0}};\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7408,
+        -112
+      ],
+      "id": "13e55795-80f5-407f-9728-14903d705834",
+      "name": "Format Defect Header",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json._state?.file?.id_spreadsheet || 'INVALID' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "FM-DQM-002-header",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "T1_F": "={{ $json.T1_F ?? null }}",
+            "T1_E": "={{ $json.T1_E ?? null }}",
+            "T1_D": "={{ $json.T1_D ?? null }}",
+            "T1_C": "={{ $json.T1_C ?? null }}",
+            "T1_B": "={{ $json.T1_B ?? null }}",
+            "T1_A": "={{ $json.T1_A ?? null }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "T1_A",
+              "displayName": "T1_A",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_B",
+              "displayName": "T1_B",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_C",
+              "displayName": "T1_C",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_D",
+              "displayName": "T1_D",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_E",
+              "displayName": "T1_E",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_F",
+              "displayName": "T1_F",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        7632,
+        -112
+      ],
+      "id": "42c225b3-66b9-4d71-baa0-240a46aa926d",
+      "name": "Append Defect Header",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$('Format Defect Header').item;\nconst state=src.json?._state || src.json?.state || {file:{},ocr:{}};\nreturn [{json:{state},...(src.binary?{binary:src.binary}:{})}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7856,
+        -112
+      ],
+      "id": "466ae046-a749-47af-862d-0313c9017760",
+      "name": "Prepare OCR 3 - Success",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $input.first() || {};\nreturn [{ json:src.json || {}, ...(src.binary ? { binary:src.binary } : {}) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7856,
+        160
+      ],
+      "id": "19a20c91-2196-47ba-9dfa-793b6aea243f",
+      "name": "Prepare OCR 3 - Fallback",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cur = $input.first() || {};\nconst fallback = $('OCR 2 Input').first(0, $runIndex) || {};\nconst binary = cur.binary || fallback.binary || {};\nconst json = cur.json || {};\nconst state = json.state || fallback.json?.state || { file: {}, ocr: {} };\nreturn [{ json: { ...json, state }, ...(Object.keys(binary).length ? { binary } : {}) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8080,
+        32
+      ],
+      "id": "e519ac39-5c3c-4a27-b686-5a0984999092",
+      "name": "OCR 3 Input"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-pro-preview-customtools",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-pro-preview-customtools"
+        },
+        "text": "=You are an OCR extraction agent.\n\nThe image is a Thai production inspection form (FM-DQM-002). Focus ONLY on the LEFT-MOST data column of the large inspection table - the \"Inspection Time / เวลาที่ตรวจสอบ\" column - reading the handwritten times from top to bottom (e.g. 08:15 ... 20:25).\nDo NOT extract the Good (pcs.) column, the Nonconforming Product columns, the Operator Name column, or the product header block at the top.\n\nTable structure:\n- Rows: 12 rows total (including empty rows)\n- Columns: 1 column labeled A (no header)\n\nValue rule for A (TIME):\n- Output MUST be in \"hh:mm\" format using a colon \":\" as the ONLY separator.\n- The separator is ALWAYS a colon. If the handwriting uses a dot, period, space, or any other separator (e.g. \"8.20\", \"8 20\", \"8-20\"), you MUST convert it to a colon and return \"8:20\". NEVER return a dot form like \"8.20\".\n- Keep the hour and minute digits exactly as written; only normalize the separator to \":\". Do not invent leading zeros.\n- If the cell is empty or is not a time at all, set null.\n\nRules:\n1. Read every row - do NOT skip any row, even if empty\n2. If a cell is empty or has no value, use null - never omit it\n3. Every row must have exactly 1 key (\"A\") in \"response\"\n4. Return ONLY valid JSON, no explanation or markdown\n\nOutput format:\n{ \"output\": [ { \"row\": 1, \"response\": { \"A\": \"<hh:mm or null>\" } } ] }",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        8288,
+        32
+      ],
+      "id": "1e484e46-a2b1-426c-912f-c26fe2be26c4",
+      "name": "ocr-agent-3",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first() || {};\nconst anchor = $('OCR 3 Input').item;\nconst binary = anchor.binary || {};\nconst prev = anchor.json || {};\n\nfunction parseGemini(j) {\n  const raw = j?.candidates?.[0]?.content?.parts?.[0]?.text;\n  if (!raw || typeof raw !== 'string') {\n    return { ok:false, result:[], error:j?.error?.message || j?.message || 'No Gemini candidate text' };\n  }\n  try {\n    const match = raw.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n    const clean = (match?.[1] ?? raw).trim()\n      .replace(/^```(?:json)?/i, '')\n      .replace(/```$/i, '')\n      .trim();\n    const parsed = JSON.parse(clean);\n    let rows = [];\n    if (Array.isArray(parsed)) rows = parsed;\n    else if (parsed && Array.isArray(parsed.output)) rows = parsed.output;\n    else if (parsed && typeof parsed === 'object') {\n      rows = Object.entries(parsed).map(([key,value]) => {\n        if (value && typeof value === 'object' && !Array.isArray(value)) {\n          return value.row ? value : { ...value, row_id:value.row_id ?? key };\n        }\n        return { row_id:key, value };\n      });\n    }\n    return { ok:rows.length > 0, result:rows, error:rows.length ? null : 'Parsed JSON contains no rows' };\n  } catch (e) {\n    return { ok:false, result:[], error:`JSON parse failed: ${e.message}` };\n  }\n}\n\nconst parsed = parseGemini(input.json || {});\nconst state = JSON.parse(JSON.stringify(prev.state || { file: {}, ocr: {} }));\nstate.ocr = state.ocr || {};\nstate.ocr['ocr3'] = parsed;\n\nreturn [{\n  json: { ...parsed, state },\n  ...(Object.keys(binary).length ? { binary } : {})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8512,
+        32
+      ],
+      "id": "84382a22-b737-411a-97e1-fc031c642cda",
+      "name": "Parse OCR 3",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "5c33989d-11be-4bf1-99bf-4af881539b25",
+              "leftValue": "={{ $json.ok === true ? 1 : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8736,
+        32
+      ],
+      "id": "60c6462c-73ad-436f-b370-65159a2ab452",
+      "name": "OCR 3 OK?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed=$input.first()||{};\nconst data=parsed.json||{};\nconst state=data.state||{file:{},ocr:{}};\nconst binary=parsed.binary||{};\nfunction cleanValue(v){if(typeof v==='string'){const x=v.trim().toLowerCase();if(x==='null'||x==='-'||x==='0')return null;}return v;}\nreturn (data.result||[]).filter(r=>r&&r.row).sort((a,b)=>a.row-b.row)\n .map(r=>({json:{row:r.row,T1_A:cleanValue(r.response?.A),_state:state},...(Object.keys(binary).length?{binary}:{}),pairedItem:{item:0}}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8960,
+        -112
+      ],
+      "id": "ba0d36fb-60a8-4577-aa91-868747eaf587",
+      "name": "Format Inspection Times",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json._state?.file?.id_spreadsheet || 'INVALID' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "FM-DQM-002-1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "T1_A": "={{ $json.T1_A ?? null }}"
+          },
+          "matchingColumns": [
+            "T1_A"
+          ],
+          "schema": [
+            {
+              "id": "T1_A",
+              "displayName": "T1_A",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        9168,
+        -112
+      ],
+      "id": "31be880c-ed05-4aca-b6b3-2d150f0c2d05",
+      "name": "Append Inspection Times",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$('Format Inspection Times').item;\nconst state=src.json?._state || src.json?.state || {file:{},ocr:{}};\nreturn [{json:{state},...(src.binary?{binary:src.binary}:{})}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9392,
+        -112
+      ],
+      "id": "36a51958-7070-44ee-b6f7-c553ba4a5a3e",
+      "name": "Prepare OCR 4 - Success",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$input.first()||{}; return [{json:src.json||{},...(src.binary?{binary:src.binary}:{})}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9392,
+        160
+      ],
+      "id": "1659fff1-0a03-4572-b859-2044301d6eda",
+      "name": "Prepare OCR 4 - Fallback",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cur = $input.first() || {};\nconst fallback = $('OCR 3 Input').first(0, $runIndex) || {};\nconst binary = cur.binary || fallback.binary || {};\nconst json = cur.json || {};\nconst state = json.state || fallback.json?.state || { file: {}, ocr: {} };\nreturn [{ json: { ...json, state }, ...(Object.keys(binary).length ? { binary } : {}) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9616,
+        32
+      ],
+      "id": "aeb53eb2-19f4-494d-b411-c7ca7e576ba7",
+      "name": "OCR 4 Input"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-pro-preview-customtools",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-pro-preview-customtools"
+        },
+        "text": "=You are an OCR extraction agent reading a Thai production inspection form (FM-DQM-002).\n\nWHICH BLOCK TO READ (read this carefully — there are TWO look-alike blocks):\nThe form has TWO separate \"Nonconforming Product (pcs.) / จำนวนสินค้าที่ไม่ผ่านเกณฑ์\" blocks:\n  (1) the LEFT block, under the heading \"Result of Bottle Appearance Assessment / ผลตรวจลักษณะภายนอกของขวดเปล่า\"\n  (2) the RIGHT block, under the heading \"Result of Labeled Bottle Appearance Assessment\"\nYou MUST read ONLY block (1), the LEFT one. The right block is almost always blank — do NOT read it. If you find yourself looking at the right half of the form, you are in the wrong block.\n\nHOW TO LOCATE BLOCK (1):\n- It is the group of 6 narrow numeric sub-columns immediately to the RIGHT of the \"Good (pcs.) / จำนวนสินค้าดี\" column, which itself is to the right of the left-most \"Inspection Time / เวลาที่ตรวจสอบ\" column.\n- Each data row lines up horizontally with one Inspection Time on the far left (08:15, 09:00, 10:00, 11:00, 12:00, 13:10, 14:10, 15:10, 17:30, 18:20, 19:10, 20:25). Use those times to anchor each of the 12 rows so you do not skip or shift rows.\n- Do NOT read the single handwritten code row (e.g. \"I1\", \"G4\") that sits ABOVE the first time row — that is a different field. Start at the row aligned with 08:15.\n\nIMPORTANT — THIS BLOCK CONTAINS REAL DATA:\n- Real handwritten numbers are present, mostly in the FIRST one or two left sub-columns (e.g. values like 8, 7, 4, 5, 6, 10, 3 and a second column like 5, 4, 3, 2). They may be small, faint, or lightly written — look closely before deciding a cell is empty.\n- Do NOT default to null. Only use null for a cell that is genuinely blank. If you can see any digit, extract it.\n- Read each row LEFT to RIGHT across all 6 sub-columns; values cluster on the left and the right columns are often empty.\n\nTable structure:\n- Rows: 12 rows total (including empty rows), one per inspection time above\n- Columns: 6 columns labeled A, B, C, D, E, F (left to right, no header)\n\nValue rule (every cell A-F):\n- Each value is a number or empty only. Extract the digits exactly as written.\n- If a cell is truly blank or not a number, set null.\n\nRules:\n1. Read every row and every column - do NOT skip any row or column\n2. If a cell is empty, use null - never omit the key\n3. Every row must have exactly 6 keys (\"A\"-\"F\") in \"response\"\n4. Return ONLY valid JSON, no explanation or markdown\n\nOutput format:\n{ \"output\": [ { \"row\": 1, \"response\": { \"A\": \"<num or null>\", \"B\": \"<num or null>\", \"C\": null, \"D\": null, \"E\": null, \"F\": null } } ] }",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        9840,
+        32
+      ],
+      "id": "6a6a8f73-4c60-4d92-bc9f-78d05bcfcf38",
+      "name": "ocr-agent-4",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first() || {};\nconst anchor = $('OCR 4 Input').item;\nconst binary = anchor.binary || {};\nconst prev = anchor.json || {};\n\nfunction parseGemini(j) {\n  const raw = j?.candidates?.[0]?.content?.parts?.[0]?.text;\n  if (!raw || typeof raw !== 'string') {\n    return { ok:false, result:[], error:j?.error?.message || j?.message || 'No Gemini candidate text' };\n  }\n  try {\n    const match = raw.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n    const clean = (match?.[1] ?? raw).trim()\n      .replace(/^```(?:json)?/i, '')\n      .replace(/```$/i, '')\n      .trim();\n    const parsed = JSON.parse(clean);\n    let rows = [];\n    if (Array.isArray(parsed)) rows = parsed;\n    else if (parsed && Array.isArray(parsed.output)) rows = parsed.output;\n    else if (parsed && typeof parsed === 'object') {\n      rows = Object.entries(parsed).map(([key,value]) => {\n        if (value && typeof value === 'object' && !Array.isArray(value)) {\n          return value.row ? value : { ...value, row_id:value.row_id ?? key };\n        }\n        return { row_id:key, value };\n      });\n    }\n    return { ok:rows.length > 0, result:rows, error:rows.length ? null : 'Parsed JSON contains no rows' };\n  } catch (e) {\n    return { ok:false, result:[], error:`JSON parse failed: ${e.message}` };\n  }\n}\n\nconst parsed = parseGemini(input.json || {});\nconst state = JSON.parse(JSON.stringify(prev.state || { file: {}, ocr: {} }));\nstate.ocr = state.ocr || {};\nstate.ocr['ocr4'] = parsed;\n\nreturn [{\n  json: { ...parsed, state },\n  ...(Object.keys(binary).length ? { binary } : {})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10048,
+        32
+      ],
+      "id": "9b5f80f1-31b0-4b48-883b-baf05da503a8",
+      "name": "Parse OCR 4",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "0380a9dc-96db-4e60-87df-769e9fb9a3a6",
+              "leftValue": "={{ $json.ok === true ? 1 : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        10272,
+        32
+      ],
+      "id": "80fd0a21-4941-436a-a110-af6822f78a95",
+      "name": "OCR 4 OK?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed=$input.first()||{};\nconst data=parsed.json||{};\nconst state=data.state||{file:{},ocr:{}};\nconst binary=parsed.binary||{};\nfunction cleanValue(v){if(typeof v==='string'){const x=v.trim().toLowerCase();if(x==='null'||x==='-'||x==='0')return null;}return v;}\nreturn (data.result||[]).filter(r=>r&&r.row).sort((a,b)=>a.row-b.row).map(r=>{\n  const out={row:r.row,_state:state};\n  for(const [k,v] of Object.entries(r.response||{})) out[`T1_${k}`]=cleanValue(v);\n  return {json:out,...(Object.keys(binary).length?{binary}:{}),pairedItem:{item:0}};\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10496,
+        -112
+      ],
+      "id": "5d6d82c3-af12-4935-942c-6dd14497847e",
+      "name": "Format NG Quantities",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json._state?.file?.id_spreadsheet || 'INVALID' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "FM-DQM-002-2",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "T1_F": "={{ $json.T1_F ?? null }}",
+            "T1_E": "={{ $json.T1_E ?? null }}",
+            "T1_D": "={{ $json.T1_D ?? null }}",
+            "T1_C": "={{ $json.T1_C ?? null }}",
+            "T1_B": "={{ $json.T1_B ?? null }}",
+            "T1_A": "={{ $json.T1_A ?? null }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "T1_A",
+              "displayName": "T1_A",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_B",
+              "displayName": "T1_B",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_C",
+              "displayName": "T1_C",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_D",
+              "displayName": "T1_D",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_E",
+              "displayName": "T1_E",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T1_F",
+              "displayName": "T1_F",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        10720,
+        -112
+      ],
+      "id": "40c5a996-6f4f-4569-98f8-5e555a7ad0e3",
+      "name": "Append NG Quantities",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$('Format NG Quantities').item;\nconst state=src.json?._state || src.json?.state || {file:{},ocr:{}};\nreturn [{json:{state},...(src.binary?{binary:src.binary}:{})}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10928,
+        -112
+      ],
+      "id": "f37b2216-b137-4777-8b4c-3c5e21e2bd2c",
+      "name": "Prepare OCR 5 - Success",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$input.first()||{}; return [{json:src.json||{},...(src.binary?{binary:src.binary}:{})}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10928,
+        160
+      ],
+      "id": "69177804-d8d4-4739-a0c9-0f8ee56afe21",
+      "name": "Prepare OCR 5 - Fallback",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cur = $input.first() || {};\nconst fallback = $('OCR 4 Input').first(0, $runIndex) || {};\nconst binary = cur.binary || fallback.binary || {};\nconst json = cur.json || {};\nconst state = json.state || fallback.json?.state || { file: {}, ocr: {} };\nreturn [{ json: { ...json, state }, ...(Object.keys(binary).length ? { binary } : {}) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11152,
+        32
+      ],
+      "id": "4b83ce65-4c4f-44dc-b7db-63dcc02371ca",
+      "name": "OCR 5 Input"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-pro-preview-customtools",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-pro-preview-customtools"
+        },
+        "text": "=You are an OCR extraction agent.\n\nThe image is a Thai production inspection form (FM-DQM-002). Focus ONLY on the two columns in the RIGHT portion of the large inspection table: \"Operator Name / ชื่อผู้ดำเนินการ\" and \"Signing Time / เวลาลงชื่อดำเนินการ\". Read the 12 time-aligned data rows from top to bottom.\nDo NOT extract the Inspection Time column, the Nonconforming Product columns, the Checker Name / right-most verification columns, or the product header block.\n\nTable structure:\n- Rows: 12 rows total (including empty rows)\n- Columns: 2 columns labeled A, B\n  - A = Operator Name\n  - B = Signing Time\n\nValue rules:\n- A = Thai text that is a person's name, or empty only. If empty, set null.\n- B (TIME): Output MUST be in \"hh:mm\" format using a colon \":\" as the ONLY separator.\n  - The separator is ALWAYS a colon. If the handwriting uses a dot, period, space, or any other separator (e.g. \"8.20\", \"8 20\", \"8-20\"), you MUST convert it to a colon and return \"8:20\". NEVER return a dot form like \"8.20\".\n  - Keep the hour and minute digits exactly as written; only normalize the separator to \":\". Do not invent leading zeros.\n  - If the cell is empty or is not a time at all, set null.\n\nRules:\n1. Read every row and every column - do NOT skip any row or column, even if empty\n2. If a cell is empty or has no value, use null - never omit it\n3. Every row must have exactly 2 keys (\"A\",\"B\") in \"response\"\n4. Return ONLY valid JSON, no explanation or markdown\n\nOutput format:\n{ \"output\": [ { \"row\": 1, \"response\": { \"A\": \"<name or null>\", \"B\": \"<hh:mm or null>\" } } ] }",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        11376,
+        32
+      ],
+      "id": "b56f6896-4f4e-425e-afe4-835e319633ce",
+      "name": "ocr-agent-5",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2bAfuEbtX2lwkAqG",
+          "name": "Api dts bill"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first() || {};\nconst anchor = $('OCR 5 Input').item;\nconst binary = anchor.binary || {};\nconst prev = anchor.json || {};\n\nfunction parseGemini(j) {\n  const raw = j?.candidates?.[0]?.content?.parts?.[0]?.text;\n  if (!raw || typeof raw !== 'string') {\n    return { ok:false, result:[], error:j?.error?.message || j?.message || 'No Gemini candidate text' };\n  }\n  try {\n    const match = raw.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n    const clean = (match?.[1] ?? raw).trim()\n      .replace(/^```(?:json)?/i, '')\n      .replace(/```$/i, '')\n      .trim();\n    const parsed = JSON.parse(clean);\n    let rows = [];\n    if (Array.isArray(parsed)) rows = parsed;\n    else if (parsed && Array.isArray(parsed.output)) rows = parsed.output;\n    else if (parsed && typeof parsed === 'object') {\n      rows = Object.entries(parsed).map(([key,value]) => {\n        if (value && typeof value === 'object' && !Array.isArray(value)) {\n          return value.row ? value : { ...value, row_id:value.row_id ?? key };\n        }\n        return { row_id:key, value };\n      });\n    }\n    return { ok:rows.length > 0, result:rows, error:rows.length ? null : 'Parsed JSON contains no rows' };\n  } catch (e) {\n    return { ok:false, result:[], error:`JSON parse failed: ${e.message}` };\n  }\n}\n\nconst parsed = parseGemini(input.json || {});\nconst state = JSON.parse(JSON.stringify(prev.state || { file: {}, ocr: {} }));\nstate.ocr = state.ocr || {};\nstate.ocr['ocr5'] = parsed;\n\nreturn [{\n  json: { ...parsed, state },\n  ...(Object.keys(binary).length ? { binary } : {})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11600,
+        32
+      ],
+      "id": "c649eb21-3fb0-43ae-807b-b56b717d2a6f",
+      "name": "Parse OCR 5",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "1ff105f6-306f-40ba-addc-0b5c283b12a7",
+              "leftValue": "={{ $json.ok === true ? 1 : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        11808,
+        32
+      ],
+      "id": "5baef75c-502b-40b7-b224-b1f4430b43cf",
+      "name": "OCR 5 OK?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed=$input.first()||{};\nconst data=parsed.json||{};\nconst state=data.state||{file:{},ocr:{}};\nconst binary=parsed.binary||{};\nfunction cleanValue(v){if(typeof v==='string'){const x=v.trim().toLowerCase();if(x==='null'||x==='-'||x==='0')return null;}return v;}\nreturn (data.result||[]).filter(r=>r&&r.row).sort((a,b)=>a.row-b.row)\n .map(r=>({json:{row:r.row,T1_A:cleanValue(r.response?.A),T1_B:cleanValue(r.response?.B),_state:state},...(Object.keys(binary).length?{binary}:{}),pairedItem:{item:0}}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12032,
+        -112
+      ],
+      "id": "89390465-165a-435b-a5da-87f15621b50d",
+      "name": "Format Operator Rows",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json._state?.file?.id_spreadsheet || 'INVALID' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "FM-DQM-002-3",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "T1_B": "={{ $json.T1_B ?? null }}",
+            "T1_A": "={{ $json.T1_A ?? null }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "T1_A",
+              "displayName": "T1_A",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "T1_B",
+              "displayName": "T1_B",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        12256,
+        -112
+      ],
+      "id": "637f27e9-802b-423d-8c06-40c9a4f9ea70",
+      "name": "Append Operator Rows",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$('Format Operator Rows').item;\nconst state=src.json?._state || src.json?.state || {file:{},ocr:{}};\nreturn [{json:{state},...(src.binary?{binary:src.binary}:{})}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12480,
+        -112
+      ],
+      "id": "fb33df82-a9dc-4a47-8640-f502da029543",
+      "name": "Prepare Final - Success",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$input.first()||{}; return [{json:src.json||{},...(src.binary?{binary:src.binary}:{})}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12480,
+        160
+      ],
+      "id": "e11e105d-f53e-4790-89dd-c024be8d2d2d",
+      "name": "Prepare Final - Fallback",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cur = $input.first() || {};\nconst fallback = $('OCR 5 Input').first(0, $runIndex) || {};\nconst binary = cur.binary || fallback.binary || {};\nconst json = cur.json || {};\nconst state = json.state || fallback.json?.state || { file: {}, ocr: {} };\nreturn [{ json: { ...json, state }, ...(Object.keys(binary).length ? { binary } : {}) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12688,
+        32
+      ],
+      "id": "df27ff1e-f5c7-4d54-830f-e400a1f0109b",
+      "name": "Final Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "const state=$json.state || {file:{},ocr:{}};\nconst file=state.file || {};\nconst r1=state.ocr?.ocr1 || {};\nconst rows=Array.isArray(r1.result)?r1.result:[];\nconst shift=rows?.[4]?.response?.B ?? null;\nconst productName=rows?.[2]?.response?.B ?? null;\nconst safeShift=(shift===null||shift===undefined||shift==='')?'NA':String(shift);\nconst safeProduct=productName?String(productName):(file.base_name||'UNKNOWN');\n\nreturn [{\n json:{\n   state,\n   source_file_id:file.source_file_id,\n   id_spreadsheet:file.id_spreadsheet,\n   date:file.date,\n   binary_ok:Boolean(file.binary_ok),\n   create_sheet_ok:Boolean(file.create_sheet_ok),\n   can_output:Boolean(file.binary_ok && file.id_spreadsheet),\n   can_trash_candidate:Boolean(file.binary_ok && file.id_spreadsheet),\n   new_file_name:`FM-DQM-002 | ${file.date||'NO-DATE'}-${safeShift} | ${safeProduct}`,\n   output_folder_id:file.output_folder_id,\n   trash_folder_id:file.trash_folder_id\n }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12912,
+        32
+      ],
+      "id": "a0af44ed-eef4-4d7e-b1b4-7f87a9359343",
+      "name": "Finalize File",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.can_output ? $json.id_spreadsheet : 'INVALID' }}",
+          "mode": "id"
+        },
+        "newUpdatedFileName": "={{ $json.new_file_name }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        13136,
+        32
+      ],
+      "id": "57c12f1a-d8ea-49f8-af34-2c02918bbe40",
+      "name": "Rename Output Spreadsheet",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Finalize File').first(0, $runIndex).json.can_output ? $('Finalize File').first(0, $runIndex).json.id_spreadsheet : 'INVALID' }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Finalize File').first(0, $runIndex).json.output_folder_id }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        13360,
+        32
+      ],
+      "id": "98e0032f-e244-4073-b2ed-cfdcb7f64690",
+      "name": "Move Spreadsheet to Output",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ ($json.id && $json.id === $('Finalize File').first(0, $runIndex).json.id_spreadsheet && $('Finalize File').first(0, $runIndex).json.can_trash_candidate) ? $('Finalize File').first(0, $runIndex).json.source_file_id : 'INVALID' }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Finalize File').first(0, $runIndex).json.trash_folder_id }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        13568,
+        32
+      ],
+      "id": "d7abf02d-fd53-4f71-a203-38942e57dae6",
+      "name": "Move Image to Trash",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fpUS3t6zl8CnO2td",
+          "name": "dts-gg-drive"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pricing={\n \"gemini-3.5-flash\":{input:1.5,output:8.3},\n \"gemini-3.1-pro\":{input:2.00,output:12.00},\n \"gemini-3.1-flash\":{input:0.50,output:3.00},\n \"gemini-3.1-flash-lite\":{input:0.25,output:1.50},\n \"gemini-2.5-pro\":{input:1.25,output:10.00},\n \"gemini-2.5-flash\":{input:0.30,output:2.50},\n \"gemini-2.5-flash-lite\":{input:0.10,output:0.40},\n default:{input:0.30,output:2.50}\n};\nfunction getData(name){try{return $(name).first(0,$runIndex).json||{};}catch(e){return {};}}\nconst names=['ocr-agent-1','ocr-agent-2','ocr-agent-3','ocr-agent-4','ocr-agent-5'];\nlet totalIn=0,totalOut=0,totalUsd=0; const byModel={};\nfor(const name of names){\n const d=getData(name),m=d.usageMetadata; if(!m) continue;\n const raw=d.modelVersion||'default'; let key='default',rate=pricing.default;\n for(const k of Object.keys(pricing)){if(k!=='default'&&raw.includes(k)){key=k;rate=pricing[k];break;}}\n const inn=m.promptTokenCount||0,out=(m.candidatesTokenCount||0)+(m.thoughtsTokenCount||0);\n const usd=inn*(rate.input/1e6)+out*(rate.output/1e6);\n totalIn+=inn; totalOut+=out; totalUsd+=usd;\n if(!byModel[key]) byModel[key]={total_tokens:0,cost_usd:0};\n byModel[key].total_tokens+=inn+out; byModel[key].cost_usd+=usd;\n}\nfor(const k of Object.keys(byModel)){\n const usd=byModel[k].cost_usd; byModel[k].cost_thb=(usd*33).toFixed(4)+' บาท'; byModel[k].cost_usd=usd.toFixed(6);\n}\nreturn [{json:{summary:{total_tokens_used:totalIn+totalOut,tokens_breakdown:{input:totalIn,output_including_thoughts:totalOut},\n cost_by_model:byModel,grand_total:{usd:totalUsd.toFixed(6),thb:(totalUsd*33+1).toFixed(4)+' บาท'}}}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        13792,
+        32
+      ],
+      "id": "e0c74875-91b7-4686-b8b0-7600b7954956",
+      "name": "cal-cost1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1leh-GfkjJvKnLI7O3tsim13bREPQVH2nG0AbzV_a3Qk",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "model-cost",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1leh-GfkjJvKnLI7O3tsim13bREPQVH2nG0AbzV_a3Qk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Total Tokens": "={{ $json.summary.total_tokens_used }}",
+            "Total Cost (THB)": "={{ $json.summary.grand_total.thb }}",
+            "Model Breakdown": "={{ $json.summary.tokens_breakdown }}",
+            "Output Tokens": "={{ $json.summary.tokens_breakdown.output_including_thoughts }}",
+            "Prompt Tokens": "={{ $json.summary.tokens_breakdown.input }}",
+            "Raw JSON": "={{ $json.summary }}",
+            "docs": "002"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Tokens",
+              "displayName": "Total Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Cost (THB)",
+              "displayName": "Total Cost (THB)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Model Breakdown",
+              "displayName": "Model Breakdown",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Prompt Tokens",
+              "displayName": "Prompt Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Output Tokens",
+              "displayName": "Output Tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Raw JSON",
+              "displayName": "Raw JSON",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "docs",
+              "displayName": "docs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        14016,
+        32
+      ],
+      "id": "0179fa0c-bc33-4aac-8c57-7521a4525a24",
+      "name": "add-cost-to-sheet1",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "2c5cd123-e9b9-45fa-b55e-0896ac562728",
+      "name": "Collapse Top Append",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        6608,
+        -112
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a67dbbbd-0215-414c-8ee6-acc13581f389",
+      "name": "Collapse Defect Append",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        7744,
+        -112
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5140d7fa-f314-4091-9619-f022e69bd434",
+      "name": "Collapse Time Append",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        9280,
+        -112
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9c981d72-fdf5-47c1-a140-4ccbea7c24ea",
+      "name": "Collapse NG Append",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        10832,
+        -112
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "805dda94-e84d-4b99-9b67-c3634dfad524",
+      "name": "Collapse Operator Append",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        12368,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const src=$input.first()||{};\nconst data=src.json||{};\nconst machine=data.result?.[1]?.response?.B || null;\nconst production_date=data.result?.[0]?.response?.B || null;\nreturn [{\n  json:{\n    result:data.result||[],\n    state:data.state||{file:{},ocr:{}},\n    lookup_sheet:`DATA-${machine ? String(machine).replaceAll('/','-') : '__INVALID__'}`,\n    production_date\n  },\n  ...(src.binary?{binary:src.binary}:{})\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5648,
+        -112
+      ],
+      "id": "79ef77c7-271b-4e8b-8a49-a51a1696e645",
+      "name": "Prepare Product Lookup",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1p0iwTuPDYI1PyiqmFhCgjVJcQAcj83SEWyHewLlhdfs",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.lookup_sheet }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "วันที่ผลิต",
+              "lookupValue": "={{ $json.production_date || '__NO_DATE__' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5872,
+        -112
+      ],
+      "id": "45bab3f5-7d1b-4e28-9d0c-71b9e3ea40c6",
+      "name": "Lookup Product Name",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "a4Xw1y7SaDpe3N5m",
+          "name": "dts-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "b1d3e98b-18ab-4428-8a6a-10d3b9bb9497",
+      "name": "Collapse Product Lookup",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        6096,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer oi8iWesT6LfWpBeUiiGcl2MDqRoui2c1oWpH9NnOOcDvjqdeYV2hsvyLHOHmUQyFYDr35gOI93l7QKa6UMoKLbstEyfJHHoRJyi0LN71gl5bkM+I1R06GWOKbpjbYhflH6VZImk/9yh/S7Zl8wvG1wdB04t89/1O/w1cDnyilFU="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"to\": \"C306ebbefc8c3bcc6fc91816da248a3e9\", \"messages\": [ { \"type\": \"text\", \"text\": \"✅ FM-DQM-002 ทำงานเสร็จสมบูรณ์\\n\\nสถานะ: SUCCESS\\nExecution ID: \" + $execution.id + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') } ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1008,
+        -176
+      ],
+      "id": "ef93d100-9233-4191-bf2e-57c6145d4475",
+      "name": "LINE - Workflow Success",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        96,
+        -672
+      ],
+      "id": "5f8ec407-921e-42c4-a26d-4532a8d4ae80",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ntfy.sh/tpi-err-n8n-5697b86b-c202-46c6-aba0-132a5d5f1641",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "n8n Workflow Error"
+            },
+            {
+              "name": "Priority",
+              "value": "high"
+            },
+            {
+              "name": "Tags",
+              "value": "warning"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ \"❌ n8n Workflow Error\\n\\nWorkflow: \" + ($json.workflow?.name ?? \"FM-DQM-002\") + \"\\nNode: \" + ($json.execution?.lastNodeExecuted ?? \"Unknown\") + \"\\nError: \" + ($json.execution?.error?.message ?? $json.error?.message ?? \"Unknown error\") + \"\\nExecution ID: \" + ($json.execution?.id ?? \"-\") + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        -832
+      ],
+      "id": "477d04b0-65e7-48fb-a5f5-484291d9083a",
+      "name": "err-ntfy",
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer oi8iWesT6LfWpBeUiiGcl2MDqRoui2c1oWpH9NnOOcDvjqdeYV2hsvyLHOHmUQyFYDr35gOI93l7QKa6UMoKLbstEyfJHHoRJyi0LN71gl5bkM+I1R06GWOKbpjbYhflH6VZImk/9yh/S7Zl8wvG1wdB04t89/1O/w1cDnyilFU="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"to\": \"C306ebbefc8c3bcc6fc91816da248a3e9\", \"messages\": [ { \"type\": \"text\", \"text\": \"❌ n8n Workflow Error\\n\\nWorkflow: \" + ($json.workflow?.name ?? \"FM-DQM-002\") + \"\\nNode: \" + ($json.execution?.lastNodeExecuted ?? \"Unknown\") + \"\\nError: \" + ($json.execution?.error?.message ?? $json.error?.message ?? \"Unknown error\") + \"\\nExecution ID: \" + ($json.execution?.id ?? \"-\") + \"\\nเวลา: \" + $now.toFormat('dd/MM/yyyy HH:mm:ss') } ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        -672
+      ],
+      "id": "09278d9f-265a-4b93-985e-a41d1f17c1d3",
+      "name": "err-line",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {
+    "Google Drive Trigger": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "fileExtension": "jpg",
+          "copyRequiresWriterPermission": false,
+          "md5Checksum": "c419cc74801bb99033c9156b3643bcf9",
+          "writersCanShare": true,
+          "viewedByMe": true,
+          "mimeType": "image/jpeg",
+          "parents": [
+            "1phh94zcuIV__rsbqew1nnh4EbJJ26NDP"
+          ],
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBPJPgNRI7FYI7b4kzhRJ8CX-JxJXXhI-FhBeFG8U1zrQm1-ARikdUNgSN0AS0YF7XAmrxnImRmXKFphLpql8Xlw4_itJ7cZqt4TaNjGocPs4S-6Dg=s220",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/jpeg",
+          "shared": true,
+          "lastModifyingUser": {
+            "displayName": "Technical Sales Support and Service Team",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "05046041181200307860",
+            "emailAddress": "dts@thaipet.co.th",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Technical Sales Support and Service Team",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "05046041181200307860",
+              "emailAddress": "dts@thaipet.co.th",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+            }
+          ],
+          "headRevisionId": "0B3xfstlQMekiM29tZUhidXFsUnZOZEdYT3pLOGcrYU1RWENnPQ",
+          "webViewLink": "https://drive.google.com/file/d/1s2pP7fNUDp94Bt3EnL9ymkbx62RFVgdM/view?usp=drivesdk",
+          "webContentLink": "https://drive.google.com/uc?id=1s2pP7fNUDp94Bt3EnL9ymkbx62RFVgdM&export=download",
+          "size": "400523",
+          "viewersCanCopyContent": true,
+          "permissions": [
+            {
+              "id": "05258815674678773289",
+              "displayName": "THAI PET INDUSTRIAL COMPANY LIMITED",
+              "type": "domain",
+              "kind": "drive#permission",
+              "role": "writer",
+              "allowFileDiscovery": false,
+              "domain": "thaipet.co.th"
+            },
+            {
+              "id": "05046041181200307860",
+              "displayName": "Technical Sales Support and Service Team",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64",
+              "emailAddress": "dts@thaipet.co.th",
+              "role": "owner",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "hasThumbnail": true,
+          "spaces": [
+            "drive"
+          ],
+          "id": "1s2pP7fNUDp94Bt3EnL9ymkbx62RFVgdM",
+          "name": "Copy of สำเนาของ BP-50M31_20260807_PF5_vince1000-2.jpg",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "createdTime": "2026-08-10T08:44:40.305Z",
+          "modifiedTime": "2026-08-10T08:44:40.305Z",
+          "modifiedByMeTime": "2026-08-10T08:44:40.305Z",
+          "viewedByMeTime": "2026-08-10T08:44:40.305Z",
+          "quotaBytesUsed": "400523",
+          "version": "2",
+          "originalFilename": "Copy of สำเนาของ BP-50M31_20260807_PF5_vince1000-2.jpg",
+          "ownedByMe": true,
+          "fullFileExtension": "jpg",
+          "isAppAuthorized": false,
+          "capabilities": {
+            "canChangeViewersCanCopyContent": true,
+            "canEdit": true,
+            "canCopy": true,
+            "canComment": true,
+            "canAddChildren": false,
+            "canDelete": true,
+            "canDownload": true,
+            "canListChildren": false,
+            "canRemoveChildren": false,
+            "canRename": true,
+            "canTrash": true,
+            "canReadRevisions": true,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canMoveItemIntoTeamDrive": true,
+            "canUntrash": true,
+            "canModifyContent": true,
+            "canMoveItemOutOfDrive": true,
+            "canAddMyDriveParent": false,
+            "canRemoveMyDriveParent": true,
+            "canMoveItemWithinDrive": true,
+            "canShare": true,
+            "canMoveChildrenWithinDrive": false,
+            "canModifyContentRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canAcceptOwnership": false,
+            "canReadLabels": false,
+            "canModifyLabels": false,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canRemoveContentRestriction": false,
+            "canDisableInheritedPermissions": false,
+            "canEnableInheritedPermissions": true,
+            "canChangeItemDownloadRestriction": true,
+            "canStartApproval": true,
+            "canAccessViaGenAi": true
+          },
+          "thumbnailVersion": "1",
+          "modifiedByMe": true,
+          "permissionIds": [
+            "05258815674678773289",
+            "05046041181200307860"
+          ],
+          "imageMediaMetadata": {
+            "width": 3002,
+            "height": 2165,
+            "rotation": 0
+          },
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "sha1Checksum": "2259a8121242d97fdfb49a1f4b50ce49822c4ed5",
+          "sha256Checksum": "469e3157a34c68af666644980fdff27ab3d89dc5f4a602b441769649932081d4",
+          "inheritedPermissionsDisabled": false,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "clientEncryptionDetails": {
+            "decryptionMetadata": {
+              "wrappedKey": "",
+              "kaclsId": "0",
+              "aes256GcmChunkSize": "unset",
+              "keyFormat": "unsetKeyFormat",
+              "encryptionResourceKeyHash": ""
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "kind": "drive#file",
+          "fileExtension": "jpg",
+          "copyRequiresWriterPermission": false,
+          "md5Checksum": "25a1c9c0547b769e99ef372f20f08c9f",
+          "writersCanShare": true,
+          "viewedByMe": true,
+          "mimeType": "image/jpeg",
+          "parents": [
+            "1phh94zcuIV__rsbqew1nnh4EbJJ26NDP"
+          ],
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBNf6RmU12MZZe4WUAL0UQPnAuhOQALQ5Q-MNNmwXq0IMK85dqRqjDCPMbBd3lo-SXm9BPvy7xzHBZ2TRob1-8r2iHVQaZWKZ7qeuctAgBX3wtT7HQ=s220",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/jpeg",
+          "shared": true,
+          "lastModifyingUser": {
+            "displayName": "Technical Sales Support and Service Team",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "05046041181200307860",
+            "emailAddress": "dts@thaipet.co.th",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Technical Sales Support and Service Team",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "05046041181200307860",
+              "emailAddress": "dts@thaipet.co.th",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+            }
+          ],
+          "headRevisionId": "0B3xfstlQMekiVGRsNGZjWTVsc2dsOGIwdnFWM1A1YTYzNmQ0PQ",
+          "webViewLink": "https://drive.google.com/file/d/17lUXmvy7ePCN2eoK-1zh0j8tAzmcXGpu/view?usp=drivesdk",
+          "webContentLink": "https://drive.google.com/uc?id=17lUXmvy7ePCN2eoK-1zh0j8tAzmcXGpu&export=download",
+          "size": "461422",
+          "viewersCanCopyContent": true,
+          "permissions": [
+            {
+              "id": "05258815674678773289",
+              "displayName": "THAI PET INDUSTRIAL COMPANY LIMITED",
+              "type": "domain",
+              "kind": "drive#permission",
+              "role": "writer",
+              "allowFileDiscovery": false,
+              "domain": "thaipet.co.th"
+            },
+            {
+              "id": "05046041181200307860",
+              "displayName": "Technical Sales Support and Service Team",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64",
+              "emailAddress": "dts@thaipet.co.th",
+              "role": "owner",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "hasThumbnail": true,
+          "spaces": [
+            "drive"
+          ],
+          "id": "17lUXmvy7ePCN2eoK-1zh0j8tAzmcXGpu",
+          "name": "Copy of สำเนาของ BP-50M31_20260807_PF5_เบลมองค์1000-1.jpg",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "createdTime": "2026-08-10T08:44:40.305Z",
+          "modifiedTime": "2026-08-10T08:44:40.305Z",
+          "modifiedByMeTime": "2026-08-10T08:44:40.305Z",
+          "viewedByMeTime": "2026-08-10T08:44:40.305Z",
+          "quotaBytesUsed": "461422",
+          "version": "2",
+          "originalFilename": "Copy of สำเนาของ BP-50M31_20260807_PF5_เบลมองค์1000-1.jpg",
+          "ownedByMe": true,
+          "fullFileExtension": "jpg",
+          "isAppAuthorized": false,
+          "capabilities": {
+            "canChangeViewersCanCopyContent": true,
+            "canEdit": true,
+            "canCopy": true,
+            "canComment": true,
+            "canAddChildren": false,
+            "canDelete": true,
+            "canDownload": true,
+            "canListChildren": false,
+            "canRemoveChildren": false,
+            "canRename": true,
+            "canTrash": true,
+            "canReadRevisions": true,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canMoveItemIntoTeamDrive": true,
+            "canUntrash": true,
+            "canModifyContent": true,
+            "canMoveItemOutOfDrive": true,
+            "canAddMyDriveParent": false,
+            "canRemoveMyDriveParent": true,
+            "canMoveItemWithinDrive": true,
+            "canShare": true,
+            "canMoveChildrenWithinDrive": false,
+            "canModifyContentRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canAcceptOwnership": false,
+            "canReadLabels": false,
+            "canModifyLabels": false,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canRemoveContentRestriction": false,
+            "canDisableInheritedPermissions": false,
+            "canEnableInheritedPermissions": true,
+            "canChangeItemDownloadRestriction": true,
+            "canStartApproval": true,
+            "canAccessViaGenAi": true
+          },
+          "thumbnailVersion": "1",
+          "modifiedByMe": true,
+          "permissionIds": [
+            "05258815674678773289",
+            "05046041181200307860"
+          ],
+          "imageMediaMetadata": {
+            "width": 2792,
+            "height": 2099,
+            "rotation": 0
+          },
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "sha1Checksum": "30e14eb0e78262001dc60791e57ac6bc9a20888a",
+          "sha256Checksum": "e2866d9c11874371614d256458d350323cfe8082980e096f0dc656351a878421",
+          "inheritedPermissionsDisabled": false,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "clientEncryptionDetails": {
+            "decryptionMetadata": {
+              "wrappedKey": "",
+              "kaclsId": "0",
+              "aes256GcmChunkSize": "unset",
+              "keyFormat": "unsetKeyFormat",
+              "encryptionResourceKeyHash": ""
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      },
+      {
+        "json": {
+          "kind": "drive#file",
+          "fileExtension": "jpg",
+          "copyRequiresWriterPermission": false,
+          "md5Checksum": "fbc42093163d870b25b5f102f2e2c353",
+          "writersCanShare": true,
+          "viewedByMe": true,
+          "mimeType": "image/jpeg",
+          "parents": [
+            "1phh94zcuIV__rsbqew1nnh4EbJJ26NDP"
+          ],
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBMMVnlIEHSARbw-QPCSW-83rTClN1ijtc-1n6nElJNxSWaAo1giN0GjDrSJ_ATSA18i5PYRp-h1aqVOomDK5vLN3gQLQAYRewGFasrfOJImsvOrvA=s220",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/jpeg",
+          "shared": true,
+          "lastModifyingUser": {
+            "displayName": "Technical Sales Support and Service Team",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "05046041181200307860",
+            "emailAddress": "dts@thaipet.co.th",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Technical Sales Support and Service Team",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "05046041181200307860",
+              "emailAddress": "dts@thaipet.co.th",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+            }
+          ],
+          "headRevisionId": "0B3xfstlQMekiUHIvTVFKNm5WM2NxdDZGQnhwNG4rSnZMSTM0PQ",
+          "webViewLink": "https://drive.google.com/file/d/16OInmQUI5O3Sz9wUaCJD5c7m4RVUNi7f/view?usp=drivesdk",
+          "webContentLink": "https://drive.google.com/uc?id=16OInmQUI5O3Sz9wUaCJD5c7m4RVUNi7f&export=download",
+          "size": "420142",
+          "viewersCanCopyContent": true,
+          "permissions": [
+            {
+              "id": "05258815674678773289",
+              "displayName": "THAI PET INDUSTRIAL COMPANY LIMITED",
+              "type": "domain",
+              "kind": "drive#permission",
+              "role": "writer",
+              "allowFileDiscovery": false,
+              "domain": "thaipet.co.th"
+            },
+            {
+              "id": "05046041181200307860",
+              "displayName": "Technical Sales Support and Service Team",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64",
+              "emailAddress": "dts@thaipet.co.th",
+              "role": "owner",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "hasThumbnail": true,
+          "spaces": [
+            "drive"
+          ],
+          "id": "16OInmQUI5O3Sz9wUaCJD5c7m4RVUNi7f",
+          "name": "Copy of สำเนาของ BP-50M31_20260807_PF5_เบลมองค์1000-2.jpg",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "createdTime": "2026-08-10T08:44:40.305Z",
+          "modifiedTime": "2026-08-10T08:44:40.305Z",
+          "modifiedByMeTime": "2026-08-10T08:44:40.305Z",
+          "viewedByMeTime": "2026-08-10T08:44:40.305Z",
+          "quotaBytesUsed": "420142",
+          "version": "2",
+          "originalFilename": "Copy of สำเนาของ BP-50M31_20260807_PF5_เบลมองค์1000-2.jpg",
+          "ownedByMe": true,
+          "fullFileExtension": "jpg",
+          "isAppAuthorized": false,
+          "capabilities": {
+            "canChangeViewersCanCopyContent": true,
+            "canEdit": true,
+            "canCopy": true,
+            "canComment": true,
+            "canAddChildren": false,
+            "canDelete": true,
+            "canDownload": true,
+            "canListChildren": false,
+            "canRemoveChildren": false,
+            "canRename": true,
+            "canTrash": true,
+            "canReadRevisions": true,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canMoveItemIntoTeamDrive": true,
+            "canUntrash": true,
+            "canModifyContent": true,
+            "canMoveItemOutOfDrive": true,
+            "canAddMyDriveParent": false,
+            "canRemoveMyDriveParent": true,
+            "canMoveItemWithinDrive": true,
+            "canShare": true,
+            "canMoveChildrenWithinDrive": false,
+            "canModifyContentRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canAcceptOwnership": false,
+            "canReadLabels": false,
+            "canModifyLabels": false,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canRemoveContentRestriction": false,
+            "canDisableInheritedPermissions": false,
+            "canEnableInheritedPermissions": true,
+            "canChangeItemDownloadRestriction": true,
+            "canStartApproval": true,
+            "canAccessViaGenAi": true
+          },
+          "thumbnailVersion": "1",
+          "modifiedByMe": true,
+          "permissionIds": [
+            "05258815674678773289",
+            "05046041181200307860"
+          ],
+          "imageMediaMetadata": {
+            "width": 2781,
+            "height": 2032,
+            "rotation": 0
+          },
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "sha1Checksum": "c3fde670e1b0be3a0e16362d7cf12e9e96372798",
+          "sha256Checksum": "a0d3f85fc087b373ac2ff8f437153e59af8598ee1edd86fb1bceac2cd42bfb40",
+          "inheritedPermissionsDisabled": false,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "clientEncryptionDetails": {
+            "decryptionMetadata": {
+              "wrappedKey": "",
+              "kaclsId": "0",
+              "aes256GcmChunkSize": "unset",
+              "keyFormat": "unsetKeyFormat",
+              "encryptionResourceKeyHash": ""
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 2
+        }
+      },
+      {
+        "json": {
+          "kind": "drive#file",
+          "fileExtension": "jpg",
+          "copyRequiresWriterPermission": false,
+          "md5Checksum": "2cb4041d33f4a984a61538d4be63a4d2",
+          "writersCanShare": true,
+          "viewedByMe": true,
+          "mimeType": "image/jpeg",
+          "parents": [
+            "1phh94zcuIV__rsbqew1nnh4EbJJ26NDP"
+          ],
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBN80-pOaO8wjOcIORwJNhC5s2wTST8nCP9sASWazM8PPZlg1JC9yVVH5nFjko8EnegwK8mzPSg11RRiZN0PaXWqIk35Z2RD3N-W1UAbdi-wmV7Ejg=s220",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/jpeg",
+          "shared": true,
+          "lastModifyingUser": {
+            "displayName": "Technical Sales Support and Service Team",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "05046041181200307860",
+            "emailAddress": "dts@thaipet.co.th",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Technical Sales Support and Service Team",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "05046041181200307860",
+              "emailAddress": "dts@thaipet.co.th",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64"
+            }
+          ],
+          "headRevisionId": "0B3xfstlQMekibzNkNFk0SVFBdDB2dEY0dXZvWiszMWRQV1JBPQ",
+          "webViewLink": "https://drive.google.com/file/d/15zQEYSh-NF8ymGVTXlt_-Is3ZzFaqXQH/view?usp=drivesdk",
+          "webContentLink": "https://drive.google.com/uc?id=15zQEYSh-NF8ymGVTXlt_-Is3ZzFaqXQH&export=download",
+          "size": "437633",
+          "viewersCanCopyContent": true,
+          "permissions": [
+            {
+              "id": "05258815674678773289",
+              "displayName": "THAI PET INDUSTRIAL COMPANY LIMITED",
+              "type": "domain",
+              "kind": "drive#permission",
+              "role": "writer",
+              "allowFileDiscovery": false,
+              "domain": "thaipet.co.th"
+            },
+            {
+              "id": "05046041181200307860",
+              "displayName": "Technical Sales Support and Service Team",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKSnPRCB2uahcZ30nD9gXsAKmn7dLuo4BtRKPTBH11mM7fNzymr=s64",
+              "emailAddress": "dts@thaipet.co.th",
+              "role": "owner",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "hasThumbnail": true,
+          "spaces": [
+            "drive"
+          ],
+          "id": "15zQEYSh-NF8ymGVTXlt_-Is3ZzFaqXQH",
+          "name": "Copy of สำเนาของ BP-50M31_20260807_PF5_vince1000-1.jpg",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "createdTime": "2026-08-10T08:44:40.305Z",
+          "modifiedTime": "2026-08-10T08:44:40.305Z",
+          "modifiedByMeTime": "2026-08-10T08:44:40.305Z",
+          "viewedByMeTime": "2026-08-10T08:44:40.305Z",
+          "quotaBytesUsed": "437633",
+          "version": "2",
+          "originalFilename": "Copy of สำเนาของ BP-50M31_20260807_PF5_vince1000-1.jpg",
+          "ownedByMe": true,
+          "fullFileExtension": "jpg",
+          "isAppAuthorized": false,
+          "capabilities": {
+            "canChangeViewersCanCopyContent": true,
+            "canEdit": true,
+            "canCopy": true,
+            "canComment": true,
+            "canAddChildren": false,
+            "canDelete": true,
+            "canDownload": true,
+            "canListChildren": false,
+            "canRemoveChildren": false,
+            "canRename": true,
+            "canTrash": true,
+            "canReadRevisions": true,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canMoveItemIntoTeamDrive": true,
+            "canUntrash": true,
+            "canModifyContent": true,
+            "canMoveItemOutOfDrive": true,
+            "canAddMyDriveParent": false,
+            "canRemoveMyDriveParent": true,
+            "canMoveItemWithinDrive": true,
+            "canShare": true,
+            "canMoveChildrenWithinDrive": false,
+            "canModifyContentRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canAcceptOwnership": false,
+            "canReadLabels": false,
+            "canModifyLabels": false,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canRemoveContentRestriction": false,
+            "canDisableInheritedPermissions": false,
+            "canEnableInheritedPermissions": true,
+            "canChangeItemDownloadRestriction": true,
+            "canStartApproval": true,
+            "canAccessViaGenAi": true
+          },
+          "thumbnailVersion": "1",
+          "modifiedByMe": true,
+          "permissionIds": [
+            "05258815674678773289",
+            "05046041181200307860"
+          ],
+          "imageMediaMetadata": {
+            "width": 2862,
+            "height": 2093,
+            "rotation": 0
+          },
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "sha1Checksum": "c74b4967ef9576f381b9005a11a9410653034c9d",
+          "sha256Checksum": "21f87563b8e7eae30ee6f3e30ed9fcff3f0fe78342d81f006fd7d57499332892",
+          "inheritedPermissionsDisabled": false,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "clientEncryptionDetails": {
+            "decryptionMetadata": {
+              "wrappedKey": "",
+              "kaclsId": "0",
+              "aes256GcmChunkSize": "unset",
+              "keyFormat": "unsetKeyFormat",
+              "encryptionResourceKeyHash": ""
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 3
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Has Filename?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Filename?": {
+      "main": [
+        [
+          {
+            "node": "Image File?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image File?": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Files": {
+      "main": [
+        [
+          {
+            "node": "LINE - Workflow Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare File Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare File Job": {
+      "main": [
+        [
+          {
+            "node": "create-sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create-sheet": {
+      "main": [
+        [
+          {
+            "node": "Bind Created Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bind Created Sheet": {
+      "main": [
+        [
+          {
+            "node": "get-raw-data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-raw-data": {
+      "main": [
+        [
+          {
+            "node": "clear-data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clear-data": {
+      "main": [
+        [
+          {
+            "node": "upload-data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload-data": {
+      "main": [
+        [
+          {
+            "node": "Move Image to Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move Image to Processing": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "File Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Payload": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet6": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet 1": {
+      "main": [
+        [
+          {
+            "node": "Collapse Context Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collapse Context Path": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet8": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet 2": {
+      "main": [
+        [
+          {
+            "node": "Combine Machines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Machines": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet 3": {
+      "main": [
+        [
+          {
+            "node": "Build OCR Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build OCR Context": {
+      "main": [
+        [
+          {
+            "node": "OCR 1 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 1 Input": {
+      "main": [
+        [
+          {
+            "node": "ocr-agent-1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocr-agent-1": {
+      "main": [
+        [
+          {
+            "node": "Parse OCR 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse OCR 1": {
+      "main": [
+        [
+          {
+            "node": "OCR 1 OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 1 OK?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Product Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare OCR 2 - Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Top Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Top Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Top Rows": {
+      "main": [
+        [
+          {
+            "node": "Collapse Top Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OCR 2 - Success": {
+      "main": [
+        [
+          {
+            "node": "OCR 2 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OCR 2 - Fallback": {
+      "main": [
+        [
+          {
+            "node": "OCR 2 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 2 Input": {
+      "main": [
+        [
+          {
+            "node": "ocr-agent-2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocr-agent-2": {
+      "main": [
+        [
+          {
+            "node": "Parse OCR 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse OCR 2": {
+      "main": [
+        [
+          {
+            "node": "OCR 2 OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 2 OK?": {
+      "main": [
+        [
+          {
+            "node": "Format Defect Header",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare OCR 3 - Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Defect Header": {
+      "main": [
+        [
+          {
+            "node": "Append Defect Header",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Defect Header": {
+      "main": [
+        [
+          {
+            "node": "Collapse Defect Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OCR 3 - Success": {
+      "main": [
+        [
+          {
+            "node": "OCR 3 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OCR 3 - Fallback": {
+      "main": [
+        [
+          {
+            "node": "OCR 3 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 3 Input": {
+      "main": [
+        [
+          {
+            "node": "ocr-agent-3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocr-agent-3": {
+      "main": [
+        [
+          {
+            "node": "Parse OCR 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse OCR 3": {
+      "main": [
+        [
+          {
+            "node": "OCR 3 OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 3 OK?": {
+      "main": [
+        [
+          {
+            "node": "Format Inspection Times",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare OCR 4 - Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Inspection Times": {
+      "main": [
+        [
+          {
+            "node": "Append Inspection Times",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Inspection Times": {
+      "main": [
+        [
+          {
+            "node": "Collapse Time Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OCR 4 - Success": {
+      "main": [
+        [
+          {
+            "node": "OCR 4 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OCR 4 - Fallback": {
+      "main": [
+        [
+          {
+            "node": "OCR 4 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 4 Input": {
+      "main": [
+        [
+          {
+            "node": "ocr-agent-4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocr-agent-4": {
+      "main": [
+        [
+          {
+            "node": "Parse OCR 4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse OCR 4": {
+      "main": [
+        [
+          {
+            "node": "OCR 4 OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 4 OK?": {
+      "main": [
+        [
+          {
+            "node": "Format NG Quantities",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare OCR 5 - Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format NG Quantities": {
+      "main": [
+        [
+          {
+            "node": "Append NG Quantities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append NG Quantities": {
+      "main": [
+        [
+          {
+            "node": "Collapse NG Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OCR 5 - Success": {
+      "main": [
+        [
+          {
+            "node": "OCR 5 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OCR 5 - Fallback": {
+      "main": [
+        [
+          {
+            "node": "OCR 5 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 5 Input": {
+      "main": [
+        [
+          {
+            "node": "ocr-agent-5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocr-agent-5": {
+      "main": [
+        [
+          {
+            "node": "Parse OCR 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse OCR 5": {
+      "main": [
+        [
+          {
+            "node": "OCR 5 OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR 5 OK?": {
+      "main": [
+        [
+          {
+            "node": "Format Operator Rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Final - Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Operator Rows": {
+      "main": [
+        [
+          {
+            "node": "Append Operator Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Operator Rows": {
+      "main": [
+        [
+          {
+            "node": "Collapse Operator Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Final - Success": {
+      "main": [
+        [
+          {
+            "node": "Final Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Final - Fallback": {
+      "main": [
+        [
+          {
+            "node": "Final Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Input": {
+      "main": [
+        [
+          {
+            "node": "Finalize File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize File": {
+      "main": [
+        [
+          {
+            "node": "Rename Output Spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename Output Spreadsheet": {
+      "main": [
+        [
+          {
+            "node": "Move Spreadsheet to Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move Spreadsheet to Output": {
+      "main": [
+        [
+          {
+            "node": "Move Image to Trash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move Image to Trash": {
+      "main": [
+        [
+          {
+            "node": "cal-cost1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cal-cost1": {
+      "main": [
+        [
+          {
+            "node": "add-cost-to-sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add-cost-to-sheet1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collapse Top Append": {
+      "main": [
+        [
+          {
+            "node": "Prepare OCR 2 - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collapse Defect Append": {
+      "main": [
+        [
+          {
+            "node": "Prepare OCR 3 - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collapse Time Append": {
+      "main": [
+        [
+          {
+            "node": "Prepare OCR 4 - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collapse NG Append": {
+      "main": [
+        [
+          {
+            "node": "Prepare OCR 5 - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collapse Operator Append": {
+      "main": [
+        [
+          {
+            "node": "Prepare Final - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Product Lookup": {
+      "main": [
+        [
+          {
+            "node": "Lookup Product Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Product Name": {
+      "main": [
+        [
+          {
+            "node": "Collapse Product Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collapse Product Lookup": {
+      "main": [
+        [
+          {
+            "node": "Format Top Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE - Workflow Success": {
+      "main": [
+        []
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "err-line",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "err-ntfy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "873a5a3a-0050-432b-a9ab-daeccf07c22e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b89bacf03b33df343a7dd9f17cf1721598896265238cfb8ad22fd7cae20c33a"
+  },
+  "id": "WzjQlfiW1iOmpC5k",
+  "tags": []
+}
