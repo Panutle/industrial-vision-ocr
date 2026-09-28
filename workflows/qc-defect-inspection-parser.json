@@ -1,5 +1,5 @@
 {
-  "name": "FM-DQM-002 | Production Multi-File Stable",
+  "name": "qc-defect-inspection-parser",
   "nodes": [
     {
       "parameters": {
