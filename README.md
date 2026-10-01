@@ -1,12 +1,12 @@
-# Industrial Vision Document Intelligence & Multimodal OCR Suite
+# Manufacturing Document OCR & Validation Workflows
 
 [![n8n](https://img.shields.io/badge/Orchestrator-n8n-EA4B71?style=flat-square&logo=n8n)](https://n8n.io/)
-[![Google Gemini](https://img.shields.io/badge/VLM-Gemini%203.1%20Pro%20%7C%203.5%20Flash-4285F4?style=flat-square&logo=google)](https://ai.google.dev/)
+[![Google Gemini](https://img.shields.io/badge/VLM-Google%20Gemini-4285F4?style=flat-square&logo=google)](https://ai.google.dev/)
 [![JavaScript](https://img.shields.io/badge/Data%20Engine-JavaScript%20ES6+-F7DF1E?style=flat-square&logo=javascript)](https://developer.mozilla.org/)
 [![Google Drive & Sheets](https://img.shields.io/badge/Integration-Drive%20%26%20Sheets%20API-34A853?style=flat-square&logo=google-drive)](https://developers.google.com/)
 [![LINE API](https://img.shields.io/badge/Alerts-LINE%20Push%20%26%20ntfy-00C300?style=flat-square&logo=line)](https://developers.line.biz/)
 
-A production-grade **Intelligent Document Processing (IDP)** pipeline suite designed for manufacturing quality control and machine maintenance auditing. The suite leverages Google Gemini Vision-Language Models (VLM), dynamic spatial cropping, EXIF orientation normalization, fuzzy dictionary reconciliation, and real-time FinOps token cost auditing.
+Five n8n workflows extract manufacturing quality and downtime records from scanned forms, reconcile product dictionaries, and write structured results to Google Sheets.
 
 ---
 
@@ -48,7 +48,7 @@ flowchart TD
     end
 
     subgraph Extraction["2. VLM Extraction & Parsing"]
-        D --> E1[Gemini 3.1 Pro / 3.5 Flash]
+        D --> E1[Configured Gemini Vision Model]
         E1 --> E2[Clean Markdown & Strict JSON Parse]
     end
 
@@ -67,7 +67,7 @@ flowchart TD
 ```
 
 ### 1. Spatial Cropping & Hardware Normalization
-* **Sub-Image Bounding-Box Cropping:** Deconstructs dense multi-table physical sheets into isolated regions using dynamic pixel coordinates $(x, y, w, h)$, eliminating hallucination and neighbor-row bleed while optimizing token usage.
+* **Sub-Image Bounding-Box Cropping:** Deconstructs dense multi-table physical sheets into isolated regions using dynamic pixel coordinates $(x, y, w, h)$, reducing neighboring-row interference while optimizing token usage.
 * **Buffer-Level EXIF Rotation:** Parses binary image buffers directly to extract TIFF/EXIF orientation tags, automatically rotating skewed captures ($90^\circ, 180^\circ, 270^\circ$) before passing them to the VLM.
 
 ### 2. Semantic Lookups & Ground-Truth Alignment
@@ -94,4 +94,19 @@ flowchart TD
 3. **Configure Credentials:**
    * **Google Drive / Google Sheets OAuth2:** Attach accounts with access to source image folders and destination spreadsheets.
    * **Google Gemini API:** Provide an API key via the Google Palm / Gemini node configuration.
-   * **LINE Messaging API:** Set up channel access tokens for success notifications.#
+   * **LINE Messaging API:** Set up channel access tokens for success notifications.
+
+
+## Reproduction notes
+
+This repository contains workflow exports. The source spreadsheets, operational datasets, credentials, and connected services must be supplied separately.
+
+1. Import the JSON files with the workflows inactive and resolve any unavailable node types.
+2. Rebind credential references to accounts in your own n8n instance.
+3. Replace document IDs, sheet names, folder IDs, webhook endpoints, LINE recipient IDs, and embedded configuration in both Code and HTTP Request nodes. Credential binding alone is not enough.
+4. Match sheet headers and data types to the field names read by the workflow; there is no automatic source-schema provisioning.
+5. Run a representative input against test destinations and inspect the extracted records or generated plan. Verify the workflow timezone and alert recipients before enabling schedules.
+
+Use an n8n installation that supports the exported Gemini, Data Table, and Edit Image nodes. Recreate the referenced Data Tables, select a Gemini model available to your account, and review the cost tables in Code nodes; their model names and prices are configuration, not a current pricing reference.
+
+The exports demonstrate implementation choices; this repository does not include a reproducible benchmark for accuracy, time savings, or production availability.
